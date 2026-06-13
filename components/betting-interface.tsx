@@ -240,7 +240,7 @@ function ScorerMinuteRange({
         <Target className="mr-1 inline h-3.5 w-3.5" />
         Buteur
       </label>
-      <Select value={player} onValueChange={setPlayer} disabled={disabled}>
+      <Select value={player} onValueChange={(v) => setPlayer(v ?? "")} disabled={disabled}>
         <SelectTrigger className="mb-4">
           <SelectValue placeholder="Choisir un joueur" />
         </SelectTrigger>
@@ -267,9 +267,12 @@ function ScorerMinuteRange({
         min={0}
         max={90}
         step={1}
-        minStepsBetweenThumbs={1}
+        minStepsBetweenValues={1}
         disabled={disabled}
-        onValueChange={(v) => setRange([v[0], v[1]] as [number, number])}
+        onValueChange={(v) => {
+          const arr = Array.isArray(v) ? v : [v]
+          setRange([arr[0] ?? 0, arr[1] ?? 90] as [number, number])
+        }}
         className="mb-4"
       />
 
