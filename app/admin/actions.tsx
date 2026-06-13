@@ -6,20 +6,17 @@ import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { RefreshCw, FlaskConical } from "lucide-react"
 import { seedDemoData } from "@/app/actions/seed"
+import { triggerSync as triggerSyncAction } from "@/app/actions/sync"
 
 export function AdminActions() {
   const router = useRouter()
   const [syncing, setSyncing] = useState(false)
   const [seeding, setSeeding] = useState(false)
 
-  async function triggerSync() {
+  async function handleSync() {
     setSyncing(true)
     try {
-      const res = await fetch("/api/sync", {
-        method: "POST",
-        headers: { authorization: `Bearer sync-secret-change-me` },
-      })
-      const data = await res.json()
+      const data = await triggerSyncAction()
       if (data.ok) {
         toast.success(`Sync terminée : ${data.results.join(" | ")}`)
       } else {
@@ -51,7 +48,7 @@ export function AdminActions() {
 
   return (
     <div className="flex flex-wrap gap-3">
-      <Button onClick={triggerSync} disabled={syncing} className="font-medium">
+      <Button onClick={handleSync} disabled={syncing} className="font-medium">
         <RefreshCw className={`mr-1.5 h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
         {syncing ? "Synchro en cours..." : "Lancer la synchronisation"}
       </Button>

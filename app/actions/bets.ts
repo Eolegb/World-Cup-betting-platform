@@ -1,7 +1,7 @@
 "use server"
 
 import { db } from "@/lib/db"
-import { bet, ledger, profile } from "@/lib/db/schema"
+import { bet, ledger, profile, match } from "@/lib/db/schema"
 import { getUserId } from "@/lib/session"
 import { potentialPayout } from "@/lib/markets"
 import { and, eq, sql } from "drizzle-orm"
@@ -30,9 +30,12 @@ export async function placeBet(input: PlaceBetInput) {
     return { ok: false as const, error: "Cote invalide." }
   }
 
-  // Run debit + bet insert atomically so balance can never go negative.
   try {
     const result = await db.transaction(async (tx) => {
+      const [m] = await tx.select({ status: match.status }).from(match).where(eq(match.id, input.matchId)).limit(1)
+      if (!m) throw new Error("MATCH_NOT_FOUND")
+      if (m.status !== "scheduled") throw new Error("MATCH_STARTED")
+
       const rows = await tx.select().from(profile).where(eq(profile.userId, userId)).limit(1)
       if (!rows.length) throw new Error("PROFILE_MISSING")
       const current = rows[0]
@@ -77,6 +80,8 @@ export async function placeBet(input: PlaceBetInput) {
     const msg = e instanceof Error ? e.message : "ERROR"
     if (msg === "INSUFFICIENT") return { ok: false as const, error: "Solde insuffisant pour cette mise." }
     if (msg === "PROFILE_MISSING") return { ok: false as const, error: "Profil introuvable." }
+    if (msg === "MATCH_NOT_FOUND") return { ok: false as const, error: "Match introuvable." }
+    if (msg === "MATCH_STARTED") return { ok: false as const, error: "Les paris sont fermés pour ce match (déjà commencé)." }
     return { ok: false as const, error: "Impossible de placer le pari." }
   }
 }

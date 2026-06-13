@@ -4,6 +4,7 @@ import { formatMoney, formatOdds, betStatusLabel, statusLabel } from "@/lib/form
 import { TeamCode, StatusPill, LiveBadge } from "@/components/match-bits"
 import { Ticket, Filter, TrendingUp, TrendingDown } from "lucide-react"
 import Link from "next/link"
+import { CancelBetButton } from "./cancel-button"
 
 export const dynamic = "force-dynamic"
 
@@ -81,12 +82,14 @@ export default async function MyBetsPage() {
               </h2>
               <div className="flex flex-col gap-2">
                 {pendingBets.map(({ bet: b, match: m }) => (
-                  <Link
+                  <div
                     key={b.id}
-                    href={`/match/${b.matchId}`}
                     className="flex items-center justify-between rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/50"
                   >
-                    <div className="min-w-0 flex-1">
+                    <Link
+                      href={`/match/${b.matchId}`}
+                      className="min-w-0 flex-1"
+                    >
                       <p className="text-sm font-medium text-card-foreground truncate">{b.label}</p>
                       <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
                         <span className="tabular">Mise {formatMoney(b.stake)}</span>
@@ -99,16 +102,19 @@ export default async function MyBetsPage() {
                           </>
                         )}
                       </div>
+                    </Link>
+                    <div className="ml-4 flex items-center gap-3 text-right">
+                      <div>
+                        <span className="inline-flex items-center rounded-full bg-live/15 px-2 py-0.5 text-xs font-medium text-live">
+                          En cours
+                        </span>
+                        <p className="mt-1 font-heading text-xs tabular text-gold">
+                          Gain pot. {formatMoney(b.potentialPayout)}
+                        </p>
+                      </div>
+                      <CancelBetButton betId={b.id} />
                     </div>
-                    <div className="ml-4 text-right">
-                      <span className="inline-flex items-center rounded-full bg-live/15 px-2 py-0.5 text-xs font-medium text-live">
-                        En cours
-                      </span>
-                      <p className="mt-1 font-heading text-xs tabular text-gold">
-                        Gain pot. {formatMoney(b.potentialPayout)}
-                      </p>
-                    </div>
-                  </Link>
+                  </div>
                 ))}
               </div>
             </div>

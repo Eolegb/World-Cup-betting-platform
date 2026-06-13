@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, serial, integer, bigint, jsonb, numeric } from "drizzle-orm/pg-core"
+import { pgTable, text, timestamp, boolean, serial, integer, bigint, jsonb, numeric, unique } from "drizzle-orm/pg-core"
 
 // --- Better Auth required tables -------------------------------------------
 // Column names are camelCase to match Better Auth's defaults. Do not rename.
@@ -85,19 +85,25 @@ export const match = pgTable("match", {
 })
 
 // Live events for a match (goals carry player + minute, used for resolution).
-export const matchEvent = pgTable("match_event", {
-  id: serial("id").primaryKey(),
-  matchId: integer("matchId").notNull(),
-  externalId: text("externalId"),
-  // goal | card | subst | var
-  type: text("type").notNull(),
-  detail: text("detail"),
-  player: text("player"),
-  team: text("team"),
-  minute: integer("minute"),
-  extraMinute: integer("extraMinute"),
-  createdAt: timestamp("createdAt").notNull().defaultNow(),
-})
+export const matchEvent = pgTable(
+  "match_event",
+  {
+    id: serial("id").primaryKey(),
+    matchId: integer("matchId").notNull(),
+    externalId: text("externalId"),
+    // goal | card | subst | var
+    type: text("type").notNull(),
+    detail: text("detail"),
+    player: text("player"),
+    team: text("team"),
+    minute: integer("minute"),
+    extraMinute: integer("extraMinute"),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+  },
+  (table) => [
+    unique("match_event_unique").on(table.matchId, table.player, table.minute, table.type),
+  ]
+)
 
 // A placed bet. `selection` holds market-specific payload as JSON.
 export const bet = pgTable("bet", {
