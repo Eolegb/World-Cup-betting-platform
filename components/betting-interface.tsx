@@ -49,10 +49,6 @@ export function BettingInterface({
   const [selection, setSelection] = useState<Selection | null>(null)
   const [stake, setStake] = useState<number>(50)
   const [submitting, setSubmitting] = useState(false)
-  const [activeTab, setActiveTab] = useState<string>(availableTabs[0] ?? "")
-
-  // Sync activeTab with Tabs defaultValue on mount
-  useState(() => { if (availableTabs[0] && !activeTab) setActiveTab(availableTabs[0]) })
 
   const marketByType = useMemo(() => {
     const map = new Map<MarketType, Market>()
@@ -60,7 +56,8 @@ export function BettingInterface({
     return map
   }, [markets])
 
-  const availableTabs = TAB_ORDER.filter((t) => marketByType.has(t) || t === "scorer_minute_range")
+  const availableTabs = useMemo(() => TAB_ORDER.filter((t) => marketByType.has(t) || t === "scorer_minute_range"), [marketByType])
+  const [activeTab, setActiveTab] = useState<string>(availableTabs[0] ?? "")
   const scorerMarket = marketByType.get("anytime_scorer")
 
   function pick(marketType: MarketType, label: string, odds: number, payload: Record<string, unknown>) {

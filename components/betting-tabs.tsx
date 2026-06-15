@@ -14,7 +14,7 @@ export function BettingTabs({ matchId, markets, balance }: { matchId: number; ma
         <button
           onClick={() => setTab("simple")}
           className={cn(
-            "rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+            "rounded-lg px-3 sm:px-4 py-2 text-sm font-medium transition-colors",
             tab === "simple" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
           )}
         >
@@ -23,7 +23,7 @@ export function BettingTabs({ matchId, markets, balance }: { matchId: number; ma
         <button
           onClick={() => setTab("combined")}
           className={cn(
-            "rounded-lg px-4 py-2 text-sm font-medium transition-colors",
+            "rounded-lg px-3 sm:px-4 py-2 text-sm font-medium transition-colors",
             tab === "combined" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
           )}
         >
