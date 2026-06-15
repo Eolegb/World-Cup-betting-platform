@@ -22,7 +22,7 @@ export async function runSync(): Promise<{ ok: boolean; results?: string[]; erro
   try {
     const results: string[] = []
 
-    const fixtures = await fetchFixtures()
+    const fixtures = await fetchFixtures(true) // force refresh
     if (fixtures.length > 0) {
       await syncFixtures(fixtures)
       results.push(`Synced ${fixtures.length} fixtures`)

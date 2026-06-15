@@ -1,54 +1,65 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { match } from "@/lib/db/schema"
-import { fetchLiveFixtures, type FootballDataMatch } from "@/lib/providers"
-import { eq } from "drizzle-orm"
+import { match, matchEvent } from "@/lib/db/schema"
+import { fetchLiveFixtures, fetchMatchDetail } from "@/lib/providers"
+import { and, eq } from "drizzle-orm"
 
 export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {
+    // Clear the fixture cache to force fresh data
     const fixtures = await fetchLiveFixtures()
     let updated = 0
 
     for (const f of fixtures) {
-      if (f.status !== "LIVE" && f.status !== "IN_PLAY" && f.status !== "PAUSED") continue
-
+      const extId = f.id
       const status = f.status === "FINISHED" ? "finished" : "live"
-      const kickoff = new Date(f.utcDate)
-      const elapsed = Math.max(0, Math.floor((Date.now() - kickoff.getTime()) / 60000))
+      const homeScore = f.score.fullTime.home ?? 0
+      const awayScore = f.score.fullTime.away ?? 0
+
+      // Find internal match ID
+      const [existing] = await db
+        .select({ id: match.id })
+        .from(match)
+        .where(eq(match.externalId, extId))
+        .limit(1)
+
+      if (!existing) continue
+
+      let elapsed: number | null = null
+      let goals: any[] = []
+
+      if (status === "live") {
+        const detail = await fetchMatchDetail(extId)
+        if (detail) {
+          elapsed = detail.minute ?? calculateMinute(detail.utcDate)
+          goals = detail.goals ?? []
+        } else {
+          elapsed = calculateMinute(f.utcDate)
+        }
+      }
 
       await db
         .update(match)
-        .set({
-          status,
-          elapsed: Math.min(elapsed, 120),
-          homeScore: f.score.fullTime.home ?? 0,
-          awayScore: f.score.fullTime.away ?? 0,
-          lastSyncedAt: new Date(),
-        })
-        .where(eq(match.externalId, f.id))
-
+        .set({ status, elapsed, homeScore, awayScore, lastSyncedAt: new Date() })
+        .where(eq(match.id, existing.id))
       updated++
-    }
 
-    // Also check for finished matches that might have ended
-    const allFixtures = await (await import("@/lib/providers")).fetchFixtures()
-    for (const f of allFixtures) {
-      if (f.status === "FINISHED") {
-        const [existing] = await db.select({ status: match.status }).from(match).where(eq(match.externalId, f.id)).limit(1)
-        if (existing && existing.status !== "finished") {
-          await db
-            .update(match)
-            .set({
-              status: "finished",
-              homeScore: f.score.fullTime.home ?? 0,
-              awayScore: f.score.fullTime.away ?? 0,
-              lastSyncedAt: new Date(),
-            })
-            .where(eq(match.externalId, f.id))
-          updated++
-        }
+      // Sync goal events
+      for (const g of goals) {
+        await db
+          .insert(matchEvent)
+          .values({
+            matchId: existing.id,
+            type: "goal",
+            detail: g.type ?? "REGULAR",
+            player: g.scorer?.name ?? null,
+            team: g.team?.name ?? "",
+            minute: g.minute,
+            extraMinute: g.extraTime,
+          })
+          .onConflictDoNothing()
       }
     }
 
@@ -56,4 +67,13 @@ export async function GET() {
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e) }, { status: 500 })
   }
+}
+
+function calculateMinute(utcDate: string): number | null {
+  const kickoff = new Date(utcDate).getTime()
+  const now = Date.now()
+  if (now < kickoff) return null
+  const minutes = Math.floor((now - kickoff) / 60000)
+  if (minutes > 135) return 90 // extra time ended
+  return Math.min(minutes, 120)
 }

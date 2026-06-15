@@ -92,14 +92,15 @@ export function hasOddsKey() {
 
 // --- Match data ---------------------------------------------------------
 
-/** Fetch all World Cup matches. Cached 2h. */
-export async function fetchFixtures(): Promise<FootballDataMatch[]> {
+/** Fetch all World Cup matches. Cached 2h. Pass force=true to bypass cache. */
+export async function fetchFixtures(force = false): Promise<FootballDataMatch[]> {
   const key = "fixtures"
-  const cached = getCached<FootballDataMatch[]>(key)
-  if (cached) return cached
+  if (!force) {
+    const cached = getCached<FootballDataMatch[]>(key)
+    if (cached) return cached
+  }
   if (!hasFootballKey()) return []
 
-  // Football-data.org doesn't support offset; fetch all in one request
   const url = `${FOOTBALL_DATA_BASE}/competitions/WC/matches?season=${WORLD_CUP_SEASON}&limit=200`
   const res = await fetch(url, { headers: footballDataHeaders(), cache: "no-store" })
   if (!res.ok) return []
@@ -109,10 +110,35 @@ export async function fetchFixtures(): Promise<FootballDataMatch[]> {
   return data
 }
 
-/** Fetch live/in-play matches from the cached fixtures. */
+/** Fetch live/in-play matches DIRECTLY from API (no cache — must be fresh). */
 export async function fetchLiveFixtures(): Promise<FootballDataMatch[]> {
-  const fixtures = await fetchFixtures()
-  return fixtures.filter((m) => m.status === "LIVE" || m.status === "IN_PLAY" || m.status === "PAUSED")
+  if (!hasFootballKey()) return []
+
+  // Fetch both LIVE and IN_PLAY statuses
+  const results: FootballDataMatch[] = []
+  for (const status of ["LIVE", "IN_PLAY", "PAUSED"]) {
+    const url = `${FOOTBALL_DATA_BASE}/competitions/WC/matches?season=${WORLD_CUP_SEASON}&status=${status}`
+    const res = await fetch(url, { headers: footballDataHeaders(), cache: "no-store" })
+    if (!res.ok) continue
+    const json = await res.json()
+    if (json?.matches) results.push(...json.matches)
+  }
+  return results
+}
+
+/** Fetch a single match detail (for minute + goals). Cached 30s. */
+export async function fetchMatchDetail(fixtureId: number): Promise<FootballDataMatch | null> {
+  const key = `match-detail:${fixtureId}`
+  const cached = getCached<FootballDataMatch>(key)
+  if (cached) return cached
+  if (!hasFootballKey()) return null
+
+  const url = `${FOOTBALL_DATA_BASE}/matches/${fixtureId}`
+  const res = await fetch(url, { headers: footballDataHeaders(), cache: "no-store" })
+  if (!res.ok) return null
+  const json = await res.json()
+  setCached(key, json, 30 * 1000)
+  return json as FootballDataMatch
 }
 
 /** Fetch detailed match including goals, bookings. Cached 60s. */
