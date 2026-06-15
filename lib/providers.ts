@@ -200,18 +200,57 @@ export type OddsApiEvent = {
   }[]
 }
 
-/** Fetch odds for the World Cup. Cached 12h. */
+/** Fetch odds for the World Cup. Cached 2h. Also updates the shared odds lookup. */
 export async function fetchOdds(): Promise<OddsApiEvent[]> {
   const key = "odds"
   const cached = getCached<OddsApiEvent[]>(key)
-  if (cached) return cached
+  if (cached) {
+    updateOddsLookup(cached)
+    return cached
+  }
   if (!hasOddsKey()) return []
 
-  const markets = "h2h,totals,btts"
+  const markets = "h2h,totals"
   const url = `${ODDS_API_BASE}/sports/soccer_fifa_world_cup/odds?regions=eu&markets=${markets}&oddsFormat=decimal&apiKey=${process.env.ODDS_API_KEY}`
   const res = await fetch(url, { cache: "no-store" })
   if (!res.ok) return []
   const data: OddsApiEvent[] = await res.json()
-  setCached(key, data, 12 * 60 * 60 * 1000)
+  setCached(key, data, 2 * 60 * 60 * 1000)
+  updateOddsLookup(data)
   return data
+}
+
+// Shared odds lookup by team name, updated after each fetch.
+const oddsByTeam = new Map<string, { homeWin: number; draw: number; awayWin: number; over25: number; under25: number }>()
+
+function updateOddsLookup(events: OddsApiEvent[]) {
+  oddsByTeam.clear()
+  for (const e of events) {
+    const h2h = e.bookmakers[0]?.markets.find(m => m.key === "h2h")
+    const totals = e.bookmakers[0]?.markets.find(m => m.key === "totals")
+    const homeWin = h2h?.outcomes.find(o => o.name === e.home_team)?.price
+    const awayWin = h2h?.outcomes.find(o => o.name === e.away_team)?.price
+    const draw = h2h?.outcomes.find(o => o.name === "Draw")?.price
+    const over25 = totals?.outcomes.find(o => o.name === "Over")?.price
+    const under25 = totals?.outcomes.find(o => o.name === "Under")?.price
+    if (homeWin && awayWin && draw) {
+      oddsByTeam.set(e.home_team, { homeWin, draw, awayWin, over25: over25 ?? 1.9, under25: under25 ?? 1.9 })
+    }
+    // Also store by away team for reverse lookup
+    if (homeWin && awayWin && draw) {
+      oddsByTeam.set(e.away_team, { homeWin: awayWin, draw, awayWin: homeWin, over25: over25 ?? 1.9, under25: under25 ?? 1.9 })
+    }
+  }
+}
+
+/** Get cached odds for a team (as home side). */
+export function getOddsForTeam(teamName: string): { homeWin: number; draw: number; awayWin: number; over25: number; under25: number } | null {
+  // Exact match
+  if (oddsByTeam.has(teamName)) return oddsByTeam.get(teamName)!
+  // Fuzzy match
+  const lower = teamName.toLowerCase()
+  for (const [key, val] of oddsByTeam) {
+    if (key.toLowerCase() === lower) return val
+  }
+  return null
 }

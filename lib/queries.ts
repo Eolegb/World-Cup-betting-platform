@@ -31,6 +31,13 @@ export function marketsForMatch(m: MatchRow, odds: OddsInputs = {}) {
     status: m.status,
   }
   const players = matchRoster(m.homeTeam, m.awayTeam)
+
+  // Use real odds from DB if available
+  const storedOdds = (m as any).oddsJson as OddsInputs | null
+  if (storedOdds) {
+    return buildMarkets(matchLike, players, { ...odds, ...storedOdds })
+  }
+
   return buildMarkets(matchLike, players, odds)
 }
 

@@ -84,6 +84,7 @@ export const match = pgTable("match", {
   elapsed: integer("elapsed"),
   homeScore: integer("homeScore").notNull().default(0),
   awayScore: integer("awayScore").notNull().default(0),
+  oddsJson: jsonb("oddsJson"),
   lastSyncedAt: timestamp("lastSyncedAt"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 })

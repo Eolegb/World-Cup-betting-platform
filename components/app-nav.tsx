@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { formatMoney } from "@/lib/format"
 import { SignOutButton } from "@/components/sign-out-button"
 import { AvatarUpload } from "@/components/avatar-upload"
+import { useScrollHide } from "@/lib/use-scroll-hide"
 import { Trophy, Home, Ticket, Crown, ShieldCheck, Coins } from "lucide-react"
 
 type NavProps = {
@@ -23,12 +24,13 @@ const LINKS = [
 
 export function AppNav({ displayName, balance, isAdmin, image }: NavProps) {
   const pathname = usePathname()
+  const hidden = useScrollHide()
   const links = isAdmin ? [...LINKS, { href: "/admin", label: "Admin", icon: ShieldCheck }] : LINKS
 
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href))
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/40 glass-strong">
+    <header className={`sticky top-0 z-40 border-b border-border/40 glass-strong transition-transform duration-300 ${hidden ? '-translate-y-full' : 'translate-y-0'}`}>
       <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4">
         <Link href="/" className="flex items-center gap-2 shrink-0">
           <img src="/logo.png" alt="BetRod" className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl object-contain" />

@@ -7,6 +7,7 @@ import {
   fetchOdds,
   type FootballDataMatch,
   type FootballDataEvent,
+  type OddsApiEvent,
 } from "@/lib/providers"
 import { resolveBet, type GoalEvent, type ResolvableMatch } from "@/lib/resolve"
 import { and, eq, sql } from "drizzle-orm"
@@ -50,7 +51,12 @@ export async function runSync(): Promise<{ ok: boolean; results?: string[]; erro
     if (eventsCount > 0) results.push(`Synced ${eventsCount} events`)
 
     const odds = await fetchOdds()
-    results.push(`Fetched odds for ${odds.length} matches`)
+    if (odds.length > 0) {
+      await syncOdds(odds)
+      results.push(`Synced odds for ${odds.length} matches`)
+    } else {
+      results.push("No odds from API")
+    }
 
     const finishedMatches = await db.select().from(match).where(eq(match.status, "finished"))
     let settledCount = 0
@@ -172,6 +178,27 @@ async function syncEvents(matchId: number, apiEvents: FootballDataEvent[]) {
         extraMinute: e.extraTime,
       })
       .onConflictDoNothing()
+  }
+}
+
+async function syncOdds(oddsEvents: OddsApiEvent[]) {
+  for (const e of oddsEvents) {
+    const h2h = e.bookmakers[0]?.markets.find(m => m.key === "h2h")
+    const totals = e.bookmakers[0]?.markets.find(m => m.key === "totals")
+    if (!h2h) continue
+
+    const homeWin = h2h.outcomes.find(o => o.name === e.home_team)?.price
+    const awayWin = h2h.outcomes.find(o => o.name === e.away_team)?.price
+    const draw = h2h.outcomes.find(o => o.name === "Draw")?.price
+    const over25 = totals?.outcomes.find(o => o.name === "Over")?.price
+    const under25 = totals?.outcomes.find(o => o.name === "Under")?.price
+
+    if (!homeWin || !draw || !awayWin) continue
+
+    const oddsData = { homeWin, draw, awayWin, over25: over25 ?? 1.9, under25: under25 ?? 1.9 }
+
+    // Match by BOTH home and away team
+    await db.update(match).set({ oddsJson: oddsData }).where(and(eq(match.homeTeam, e.home_team), eq(match.awayTeam, e.away_team)))
   }
 }
 
