@@ -34,7 +34,7 @@ export function BettingTabs({ matchId, markets, balance }: { matchId: number; ma
       {tab === "simple" ? (
         <BettingInterface matchId={matchId} markets={markets} balance={balance} canBet={true} />
       ) : (
-        <BettingCombined matchId={matchId} balance={balance} />
+        <BettingCombined balance={balance} />
       )}
     </div>
   )
