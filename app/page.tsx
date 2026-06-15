@@ -32,7 +32,7 @@ export default async function DashboardPage() {
 
   return (
     <AppShell profile={profile}>
-      {live.length > 0 && <AutoRefresh seconds={30} />}
+      {matches.length > 0 && <AutoRefresh seconds={30} />}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
         <div className="min-w-0 space-y-6">
