@@ -54,7 +54,7 @@ export default async function MatchDetailPage({
           <div className="flex-1" style={{ backgroundColor: homeColors.primary }} />
           <div className="flex-1" style={{ backgroundColor: awayColors.primary }} />
         </div>
-        <div className="bg-card p-6">
+        <div className="bg-card p-3 sm:p-6">
           <div className="mb-3 flex items-center justify-between">
             <span className="text-xs text-muted-foreground">{m.stage ?? "Coupe du Monde 2026"}</span>
             <div className="flex items-center gap-2">
@@ -62,7 +62,32 @@ export default async function MatchDetailPage({
             </div>
           </div>
 
-          <div className="flex items-center justify-between gap-4">
+          {/* Mobile: stacked layout */}
+          <div className="flex flex-col sm:hidden items-center gap-3">
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-2">
+                <span className="text-2xl">{homeFlag}</span>
+                <span className="font-heading text-lg">{m.homeTeam}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="font-heading text-lg">{m.awayTeam}</span>
+                <span className="text-2xl">{awayFlag}</span>
+              </div>
+            </div>
+            {isLive ? (
+              <LiveScore homeScore={m.homeScore} awayScore={m.awayScore} elapsed={m.elapsed} isLive={true} />
+            ) : isFinished ? (
+              <LiveScore homeScore={m.homeScore} awayScore={m.awayScore} elapsed={null} isLive={false} />
+            ) : (
+              <div className="flex flex-col items-center gap-1">
+                <span className="font-heading text-2xl tabular text-muted-foreground">VS</span>
+                <Countdown kickoff={m.kickoff.toISOString()} />
+              </div>
+            )}
+          </div>
+
+          {/* Desktop: horizontal layout */}
+          <div className="hidden sm:flex items-center justify-between gap-4">
             <div className="flex flex-1 items-center gap-3">
               <span className="text-3xl">{homeFlag}</span>
               <div>

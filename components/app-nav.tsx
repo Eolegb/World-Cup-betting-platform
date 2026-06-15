@@ -64,15 +64,15 @@ export function AppNav({ displayName, balance, isAdmin }: NavProps) {
               <p className="font-heading text-sm text-gold tabular">{formatMoney(balance)}</p>
             </div>
           </div>
-          <span className="hidden lg:block text-sm text-muted-foreground max-w-[10rem] truncate" title={displayName}>
+          <span className="hidden sm:block text-sm text-muted-foreground max-w-[10rem] truncate" title={displayName}>
             {displayName}
           </span>
           <SignOutButton />
         </div>
       </div>
 
-      {/* Mobile nav */}
-      <nav className="md:hidden flex items-center gap-1 overflow-x-auto px-3 pb-2">
+      {/* Mobile nav - bottom tab bar style */}
+      <nav className="md:hidden flex items-center justify-around border-t border-border bg-background px-1 pb-safe">
         {links.map((l) => {
           const Icon = l.icon
           return (
@@ -80,14 +80,14 @@ export function AppNav({ displayName, balance, isAdmin }: NavProps) {
               key={l.href}
               href={l.href}
               className={cn(
-                "flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors",
+                "flex flex-col items-center gap-0.5 py-1.5 px-1 min-w-0 text-[10px] font-medium transition-colors",
                 isActive(l.href)
-                  ? "bg-secondary text-foreground"
-                  : "text-muted-foreground hover:bg-secondary hover:text-foreground",
+                  ? "text-primary"
+                  : "text-muted-foreground",
               )}
             >
               <Icon className="h-4 w-4" />
-              {l.label}
+              <span className="truncate">{l.label}</span>
             </Link>
           )
         })}

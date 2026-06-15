@@ -49,6 +49,10 @@ export function BettingInterface({
   const [selection, setSelection] = useState<Selection | null>(null)
   const [stake, setStake] = useState<number>(50)
   const [submitting, setSubmitting] = useState(false)
+  const [activeTab, setActiveTab] = useState<string>(availableTabs[0] ?? "")
+
+  // Sync activeTab with Tabs defaultValue on mount
+  useState(() => { if (availableTabs[0] && !activeTab) setActiveTab(availableTabs[0]) })
 
   const marketByType = useMemo(() => {
     const map = new Map<MarketType, Market>()
@@ -92,7 +96,7 @@ export function BettingInterface({
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+    <div className="grid gap-6 md:grid-cols-[1fr_280px] lg:grid-cols-[1fr_320px]">
       <div className="rounded-2xl border border-primary/20 bg-card p-4 sm:p-6">
         <div className="mb-4 flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
@@ -110,8 +114,23 @@ export function BettingInterface({
           </div>
         )}
 
-        <Tabs defaultValue={availableTabs[0]} className="w-full">
-          <TabsList className="mb-4 flex h-auto w-full gap-1 overflow-x-auto bg-transparent p-0 pb-1 flex-nowrap">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v ?? availableTabs[0] ?? "")} className="w-full">
+          {/* Mobile: dropdown selector */}
+          <div className="sm:hidden mb-4">
+            <Select value={activeTab} onValueChange={(v) => setActiveTab(v ?? availableTabs[0] ?? "")}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {availableTabs.map((t) => (
+                  <SelectItem key={t} value={t}>{MARKET_LABELS[t]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Desktop: horizontal scrollable tabs */}
+          <TabsList className="mb-4 hidden sm:flex h-auto w-full gap-1 overflow-x-auto bg-transparent p-0 pb-1 flex-nowrap">
             {availableTabs.map((t) => (
               <TabsTrigger
                 key={t}

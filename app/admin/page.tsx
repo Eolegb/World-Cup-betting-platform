@@ -53,22 +53,22 @@ export default async function AdminPage() {
             <thead>
               <tr className="border-b border-border">
                 <th className="h-10 px-4 text-left font-medium text-muted-foreground">Nom</th>
-                <th className="h-10 px-4 text-left font-medium text-muted-foreground">Email</th>
-                <th className="h-10 px-4 text-left font-medium text-muted-foreground">ID</th>
                 <th className="h-10 px-4 text-right font-medium text-muted-foreground">Solde</th>
-                <th className="h-10 px-4 text-center font-medium text-muted-foreground">Streak</th>
-                <th className="h-10 px-4 text-center font-medium text-muted-foreground">Admin</th>
+                <th className="hidden sm:table-cell h-10 px-4 text-left font-medium text-muted-foreground">Email</th>
+                <th className="hidden sm:table-cell h-10 px-4 text-left font-medium text-muted-foreground">ID</th>
+                <th className="hidden sm:table-cell h-10 px-4 text-center font-medium text-muted-foreground">Streak</th>
+                <th className="hidden sm:table-cell h-10 px-4 text-center font-medium text-muted-foreground">Admin</th>
               </tr>
             </thead>
             <tbody>
               {users.map((u) => (
                 <tr key={u.id} className="border-b border-border transition-colors hover:bg-muted/50">
                   <td className="p-3 font-medium text-card-foreground">{u.name}</td>
-                  <td className="p-3 text-xs text-muted-foreground">{u.email}</td>
-                  <td className="p-3 font-mono text-[10px] text-muted-foreground">{u.id}</td>
                   <td className="p-3 text-right font-heading tabular text-foreground">{u.balance ?? 1000}€</td>
-                  <td className="p-3 text-center">{u.streak ? `🔥 ${u.streak}` : "—"}</td>
-                  <td className="p-3 text-center">{u.isAdmin ? "✅" : "—"}</td>
+                  <td className="hidden sm:table-cell p-3 text-xs text-muted-foreground">{u.email}</td>
+                  <td className="hidden sm:table-cell p-3 font-mono text-[10px] text-muted-foreground">{u.id}</td>
+                  <td className="hidden sm:table-cell p-3 text-center">{u.streak ? `🔥 ${u.streak}` : "—"}</td>
+                  <td className="hidden sm:table-cell p-3 text-center">{u.isAdmin ? "✅" : "—"}</td>
                 </tr>
               ))}
             </tbody>
@@ -90,7 +90,7 @@ export default async function AdminPage() {
       </div>
 
       {/* Stats */}
-      <div className="mb-6 grid gap-3 sm:grid-cols-4">
+      <div className="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="rounded-2xl border border-border bg-card p-4">
           <p className="text-xs text-muted-foreground">Total matchs</p>
           <p className="mt-1 font-heading text-xl tabular text-foreground">{totalMatches}</p>

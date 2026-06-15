@@ -35,35 +35,22 @@ export function LeaderboardEnhanced({
         .podium-3 { animation: podium-in 0.5s 0.2s ease-out both; }
       `}</style>
 
-      {/* Podium */}
-      <div className="mb-8 grid grid-cols-3 items-end gap-2 sm:gap-4">
-        {/* 2nd place */}
-        <PodiumCard
-          rank={2}
-          row={top3[1]}
-          isMe={top3[1]?.userId === myUserId}
-          className="podium-2"
-          height="h-40 sm:h-48"
-        />
+      {/* Podium - mobile: stacked 1st full-width, 2nd+3rd side by side */}
+      <div className="sm:hidden mb-8 flex flex-col gap-3">
+        {top3[0] && <PodiumCard rank={1} row={top3[0]} isMe={top3[0].userId === myUserId} height="h-36" isFirst />}
+        {top3.length > 1 && (
+          <div className="grid grid-cols-2 gap-3">
+            {top3[1] && <PodiumCard rank={2} row={top3[1]} isMe={top3[1].userId === myUserId} height="h-32" />}
+            {top3[2] && <PodiumCard rank={3} row={top3[2]} isMe={top3[2].userId === myUserId} height="h-28" />}
+          </div>
+        )}
+      </div>
 
-        {/* 1st place */}
-        <PodiumCard
-          rank={1}
-          row={top3[0]}
-          isMe={top3[0]?.userId === myUserId}
-          className="podium-1"
-          height="h-48 sm:h-56"
-          isFirst
-        />
-
-        {/* 3rd place */}
-        <PodiumCard
-          rank={3}
-          row={top3[2]}
-          isMe={top3[2]?.userId === myUserId}
-          className="podium-3"
-          height="h-32 sm:h-40"
-        />
+      {/* Podium - desktop: 3 columns */}
+      <div className="hidden sm:grid mb-8 grid-cols-3 items-end gap-2 sm:gap-4">
+        {top3[1] && <PodiumCard rank={2} row={top3[1]} isMe={top3[1]?.userId === myUserId} className="podium-2" height="h-40 sm:h-48" />}
+        {top3[0] && <PodiumCard rank={1} row={top3[0]} isMe={top3[0]?.userId === myUserId} className="podium-1" height="h-48 sm:h-56" isFirst />}
+        {top3[2] && <PodiumCard rank={3} row={top3[2]} isMe={top3[2]?.userId === myUserId} className="podium-3" height="h-32 sm:h-40" />}
       </div>
 
       {/* Rest of leaderboard */}

@@ -22,7 +22,7 @@ export default async function DashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
         <div className="min-w-0">
-          <section className="mb-8 overflow-hidden rounded-2xl border border-border bg-card p-6">
+          <section className="mb-8 overflow-hidden rounded-2xl border border-border bg-card p-4 sm:p-6">
             <p className="text-sm text-muted-foreground">Salut {profile.displayName}</p>
             <h1 className="mt-1 font-heading text-2xl text-card-foreground text-balance sm:text-3xl">
               Place tes pronos pour la Coupe du Monde 2026

@@ -27,7 +27,8 @@ export function BettingTabs({ matchId, markets, balance }: { matchId: number; ma
             tab === "combined" ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground hover:text-foreground"
           )}
         >
-          🎯 Combiné x2-x5
+          <span className="hidden sm:inline">🎯 Combiné x2-x5</span>
+          <span className="sm:hidden">🎯 Combiné</span>
         </button>
       </div>
 

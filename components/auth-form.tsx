@@ -43,14 +43,14 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
     <main className="min-h-svh bg-background flex flex-col items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center gap-3 mb-8">
-          <img src="/logo.png" alt="BetRod" className="h-48 w-48 rounded-3xl object-contain" />
+          <img src="/logo.png" alt="BetRod" className="h-32 w-32 sm:h-48 sm:w-48 rounded-3xl object-contain" />
           <div className="text-center leading-tight">
             <p className="font-heading text-2xl text-foreground">BetRod</p>
             <p className="text-xs text-muted-foreground">Coupe du Monde 2026</p>
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border bg-card p-6">
+        <div className="rounded-2xl border border-border bg-card p-4 sm:p-6">
           <div className="mb-6">
             <h1 className="font-heading text-2xl text-card-foreground text-balance">
               {isSignUp ? "Rejoindre la ligue" : "Bon retour"}

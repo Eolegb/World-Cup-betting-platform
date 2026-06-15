@@ -126,7 +126,7 @@ export default async function MyBetsPage() {
                         {m && <><span>·</span><span>{m.homeTeam} vs {m.awayTeam}</span></>}
                       </div>
                     </Link>
-                    <div className="ml-4 flex items-center gap-3 text-right">
+                    <div className="ml-2 sm:ml-4 flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-3 text-right">
                       <div>
                         <span className="inline-flex items-center rounded-full bg-live/15 px-2 py-0.5 text-xs font-medium text-live">
                           En cours
@@ -135,8 +135,10 @@ export default async function MyBetsPage() {
                           Gain pot. {formatMoney(b.potentialPayout)}
                         </p>
                       </div>
-                      {!b.isJoker && <JokerButton betId={b.id} jokerUsedAt={p.jokerUsedAt} />}
-                      <CancelBetButton betId={b.id} />
+                      <div className="flex items-center gap-1.5">
+                        {!b.isJoker && <JokerButton betId={b.id} jokerUsedAt={p.jokerUsedAt} />}
+                        <CancelBetButton betId={b.id} />
+                      </div>
                     </div>
                   </div>
                 ))}
