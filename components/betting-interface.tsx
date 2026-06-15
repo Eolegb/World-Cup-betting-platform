@@ -101,12 +101,12 @@ export function BettingInterface({
         )}
 
         <Tabs defaultValue={availableTabs[0]} className="w-full">
-          <TabsList className="mb-4 flex h-auto w-full flex-wrap justify-start gap-1 bg-transparent p-0">
+          <TabsList className="mb-4 flex h-auto w-full gap-1 overflow-x-auto bg-transparent p-0 pb-1 flex-nowrap">
             {availableTabs.map((t) => (
               <TabsTrigger
                 key={t}
                 value={t}
-                className="rounded-lg border border-border bg-card px-3 py-1.5 text-xs data-[state=active]:border-primary data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                className="shrink-0 rounded-lg border border-border bg-card px-2.5 py-1.5 text-[11px] whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
               >
                 {MARKET_LABELS[t]}
               </TabsTrigger>
