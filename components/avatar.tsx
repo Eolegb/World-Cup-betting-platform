@@ -20,12 +20,13 @@ function hashColor(name: string): string {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
 }
 
-type AvatarSize = "sm" | "md" | "lg"
+type AvatarSize = "sm" | "md" | "lg" | "xl"
 
 const SIZE_MAP: Record<AvatarSize, { container: string; text: string }> = {
   sm: { container: "size-8", text: "text-xs" },
   md: { container: "size-10", text: "text-sm" },
   lg: { container: "size-12", text: "text-base" },
+  xl: { container: "size-24", text: "text-3xl" },
 }
 
 export function Avatar({

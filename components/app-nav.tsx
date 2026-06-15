@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { formatMoney } from "@/lib/format"
 import { SignOutButton } from "@/components/sign-out-button"
-import { Trophy, Home, Ticket, Crown, ShieldCheck, Coins } from "lucide-react"
+import { Trophy, Home, Ticket, Crown, ShieldCheck, Coins, Settings } from "lucide-react"
 
 type NavProps = {
   displayName: string
@@ -17,6 +17,7 @@ const LINKS = [
   { href: "/", label: "Matchs", icon: Home },
   { href: "/mes-paris", label: "Mes paris", icon: Ticket },
   { href: "/classement", label: "Classement", icon: Crown },
+  { href: "/settings", label: "Profil", icon: Settings },
 ]
 
 export function AppNav({ displayName, balance, isAdmin }: NavProps) {
