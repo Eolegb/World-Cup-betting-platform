@@ -114,7 +114,7 @@ export default function MatchCard({ match: m }: { match: MatchRow }) {
 
         {m.status === "scheduled" && (
           <div className="mt-3 border-t border-border/30 pt-3">
-            <OddsDisplay matchId={m.id} status={m.status} />
+            <OddsDisplay matchId={m.id} status={m.status} homeTeam={m.homeTeam} awayTeam={m.awayTeam} />
           </div>
         )}
 

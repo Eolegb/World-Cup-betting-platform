@@ -11,7 +11,7 @@ const fetcher = (url: string) => fetch(url).then(r => { if (!r.ok) throw new Err
 
 type OddsFlash = { homeWin?: number; draw?: number; awayWin?: number; over25?: number; under25?: number }
 
-export function OddsDisplay({ matchId, status, className }: { matchId: number; status?: string; className?: string }) {
+export function OddsDisplay({ matchId, status, homeTeam, awayTeam, className }: { matchId: number; status?: string; homeTeam?: string; awayTeam?: string; className?: string }) {
   const isFinished = status === "finished" || status === "live"
 
   const { data, error, isValidating, mutate } = useSWR<NormalizedOdds>(
@@ -77,9 +77,9 @@ export function OddsDisplay({ matchId, status, className }: { matchId: number; s
   return (
     <div className={cn("space-y-1.5", className)}>
       <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-        <OddsCell label="1" team="Domicile" value={odds.homeWin} flash={flash.homeWin !== undefined} />
+        <OddsCell label="1" team={homeTeam || "Domicile"} value={odds.homeWin} flash={flash.homeWin !== undefined} />
         <OddsCell label="N" team="Nul" value={odds.draw} flash={flash.draw !== undefined} isDraw />
-        <OddsCell label="2" team="Extérieur" value={odds.awayWin} flash={flash.awayWin !== undefined} />
+        <OddsCell label="2" team={awayTeam || "Extérieur"} value={odds.awayWin} flash={flash.awayWin !== undefined} />
       </div>
       <div className="flex items-center justify-between text-[10px] text-muted-foreground">
         <span className="flex items-center gap-1">
@@ -98,7 +98,7 @@ function OddsCell({ label, team, value, flash, isDraw }: { label: string; team: 
       "flex flex-col items-center rounded-xl border p-1.5 sm:p-2 text-center transition-all duration-300",
       flash ? "border-gold/60 bg-gold/10 animate-glow-pulse" : isDraw ? "border-border/50 bg-secondary/20" : "border-border/50 glass",
     )}>
-      <span className="text-[9px] sm:text-[10px] text-muted-foreground">{team}</span>
+      <span className="text-[9px] sm:text-[10px] text-muted-foreground truncate max-w-full">{team}</span>
       <span className={cn(
         "font-heading text-base sm:text-lg tabular transition-colors duration-300",
         flash ? "text-gold scale-110" : "text-gold"

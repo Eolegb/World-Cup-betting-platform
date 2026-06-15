@@ -220,7 +220,7 @@ export default async function MatchDetailPage({
             <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gold/10 text-gold text-xs font-bold">1X2</span>
             Cotes du match
           </h3>
-          <OddsDisplay matchId={m.id} status={m.status} />
+          <OddsDisplay matchId={m.id} status={m.status} homeTeam={m.homeTeam} awayTeam={m.awayTeam} />
         </div>
       )}
       {canBet ? (
