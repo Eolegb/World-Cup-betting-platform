@@ -72,7 +72,7 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
                   onChange={(e) => setName(e.target.value)}
                   required
                   autoComplete="name"
-                  placeholder="Ex: Le Boss des pronos"
+                  placeholder="Ex: Rod le pronostiqueur"
                 />
               </div>
             )}
