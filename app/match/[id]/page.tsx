@@ -4,6 +4,7 @@ import { getMatch, getMatchEvents, marketsForMatch, getMatchBetsForUser } from "
 import { getBetsForMatch } from "@/app/actions/bets"
 import { LiveScore } from "@/components/live-score"
 import { BettingTabs } from "@/components/betting-tabs"
+import { OddsDisplay } from "@/components/odds-display"
 import { LiveBadge, StatusPill } from "@/components/match-bits"
 import { AutoRefresh } from "@/components/auto-refresh"
 import { flagForTeam } from "@/lib/flags"
@@ -213,6 +214,15 @@ export default async function MatchDetailPage({
       </div>
 
       {/* Betting zone - full width, prominent */}
+      {canBet && (
+        <div className="mb-6 rounded-2xl border border-gold/20 glass-strong p-4">
+          <h3 className="mb-3 flex items-center gap-2 font-heading text-sm text-card-foreground">
+            <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gold/10 text-gold text-xs font-bold">1X2</span>
+            Cotes du match
+          </h3>
+          <OddsDisplay matchId={m.id} status={m.status} />
+        </div>
+      )}
       {canBet ? (
         <BettingTabs matchId={m.id} markets={markets} balance={p.balance} />
       ) : !isScheduled ? (

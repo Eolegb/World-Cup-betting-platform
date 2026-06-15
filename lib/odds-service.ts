@@ -129,7 +129,7 @@ export async function updateAllOdds(): Promise<{ ok: boolean; stored: number; er
 }
 
 /** Get cached odds for a single match (checks memory → DB → fallback) */
-export async function getOddsForMatch(matchId: number): Promise<NormalizedOdds> {
+export async function getOddsForMatch(matchId: number): Promise<NormalizedOdds | null> {
   // 1. Memory cache
   const memKey = `odds:${matchId}`
   const mem = memCache.get(memKey)
@@ -137,10 +137,20 @@ export async function getOddsForMatch(matchId: number): Promise<NormalizedOdds> 
 
   // 2. Database
   const [row] = await db
-    .select({ oddsJson: match.oddsJson })
+    .select({ oddsJson: match.oddsJson, status: match.status })
     .from(match)
     .where(eq(match.id, matchId))
     .limit(1)
+
+  // Don't return fallback for finished/live matches
+  if (!row || row.status === "finished" || row.status === "live") {
+    if (row?.oddsJson) {
+      const data = row.oddsJson as NormalizedOdds
+      memCache.set(memKey, { data, expires: Date.now() + 60000 })
+      return data
+    }
+    return null
+  }
 
   if (row?.oddsJson) {
     const data = row.oddsJson as NormalizedOdds
@@ -148,7 +158,7 @@ export async function getOddsForMatch(matchId: number): Promise<NormalizedOdds> 
     return data
   }
 
-  // 3. Fallback
+  // 3. Fallback only for scheduled matches without stored odds
   return { ...FALLBACK_ODDS, updatedAt: new Date().toISOString() }
 }
 
