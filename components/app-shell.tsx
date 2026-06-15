@@ -25,19 +25,19 @@ export async function requireUser() {
     }
   }
 
-  return { user: session.user, profile: p }
+  return { user: session.user, profile: { ...p, image: session.user.image ?? null } }
 }
 
 export async function AppShell({
   profile: p,
   children,
 }: {
-  profile: { displayName: string; balance: number; isAdmin: boolean; streak?: number; bestStreak?: number; avatarColor?: string; jokerUsedAt?: Date | null }
+  profile: { displayName: string; balance: number; isAdmin: boolean; streak?: number; bestStreak?: number; avatarColor?: string; jokerUsedAt?: Date | null; image?: string | null }
   children: React.ReactNode
 }) {
   return (
     <div className="min-h-svh bg-background">
-      <AppNav displayName={p.displayName} balance={p.balance} isAdmin={p.isAdmin} />
+      <AppNav displayName={p.displayName} balance={p.balance} isAdmin={p.isAdmin} image={p.image} />
       <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
     </div>
   )

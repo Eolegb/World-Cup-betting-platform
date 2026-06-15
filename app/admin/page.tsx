@@ -85,8 +85,24 @@ export default async function AdminPage() {
         <p className="mb-4 text-sm text-muted-foreground">
           Récupère les matchs, scores et cotes depuis les API externes. Résout automatiquement les paris.
         </p>
-
         <AdminActions />
+      </div>
+
+      {/* Admin tools */}
+      <div className="rounded-2xl border border-border bg-card p-6">
+        <h2 className="mb-3 flex items-center gap-2 font-heading text-base text-card-foreground">
+          <FlaskConical className="h-4 w-4 text-gold" />
+          Outils
+        </h2>
+        <div className="flex flex-wrap gap-3">
+          <a
+            href="/api/admin/reset-balances"
+            className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-destructive/40 hover:text-destructive"
+            onClick={async (e) => { e.preventDefault(); if (confirm("Restaurer toutes les cagnottes à leur dernière valeur sauvegardée ?")) { const res = await fetch("/api/admin/reset-balances"); const data = await res.json(); alert(data.ok ? `${data.restored} cagnottes restaurées.` : "Erreur"); window.location.reload(); } }}
+          >
+            🔄 Restaurer les cagnottes
+          </a>
+        </div>
       </div>
 
       {/* Stats */}

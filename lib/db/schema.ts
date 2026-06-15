@@ -61,6 +61,7 @@ export const profile = pgTable("profile", {
   userId: text("userId").primaryKey(),
   displayName: text("displayName").notNull(),
   balance: integer("balance").notNull().default(1000),
+  balanceBackup: integer("balanceBackup").notNull().default(1000),
   isAdmin: boolean("isAdmin").notNull().default(false),
   avatarColor: text("avatarColor").notNull().default("#3498db"),
   streak: integer("streak").notNull().default(0),

@@ -221,7 +221,7 @@ async function settleMatch(m: typeof match.$inferSelect): Promise<number> {
       if (payout > 0) {
         const [p] = await tx
           .update(profile)
-          .set({ balance: sql`${profile.balance} + ${payout}` })
+          .set({ balance: sql`${profile.balance} + ${payout}`, balanceBackup: sql`${profile.balance}` })
           .where(eq(profile.userId, b.userId))
           .returning()
 

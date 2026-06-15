@@ -5,22 +5,23 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { formatMoney } from "@/lib/format"
 import { SignOutButton } from "@/components/sign-out-button"
-import { Trophy, Home, Ticket, Crown, ShieldCheck, Coins, Settings } from "lucide-react"
+import { AvatarUpload } from "@/components/avatar-upload"
+import { Trophy, Home, Ticket, Crown, ShieldCheck, Coins } from "lucide-react"
 
 type NavProps = {
   displayName: string
   balance: number
   isAdmin: boolean
+  image?: string | null
 }
 
 const LINKS = [
   { href: "/", label: "Matchs", icon: Home },
   { href: "/mes-paris", label: "Mes paris", icon: Ticket },
   { href: "/classement", label: "Classement", icon: Crown },
-  { href: "/settings", label: "Profil", icon: Settings },
 ]
 
-export function AppNav({ displayName, balance, isAdmin }: NavProps) {
+export function AppNav({ displayName, balance, isAdmin, image }: NavProps) {
   const pathname = usePathname()
   const links = isAdmin ? [...LINKS, { href: "/admin", label: "Admin", icon: ShieldCheck }] : LINKS
 
@@ -65,6 +66,7 @@ export function AppNav({ displayName, balance, isAdmin }: NavProps) {
               <p className="font-heading text-sm text-gold tabular">{formatMoney(balance)}</p>
             </div>
           </div>
+          <AvatarUpload name={displayName} currentImage={image ?? null} size="sm" />
           <span className="hidden sm:block text-sm text-muted-foreground max-w-[10rem] truncate" title={displayName}>
             {displayName}
           </span>
@@ -72,7 +74,7 @@ export function AppNav({ displayName, balance, isAdmin }: NavProps) {
         </div>
       </div>
 
-      {/* Mobile nav - bottom tab bar style */}
+      {/* Mobile nav */}
       <nav className="md:hidden flex items-center justify-around border-t border-border bg-background px-1 pb-safe">
         {links.map((l) => {
           const Icon = l.icon
