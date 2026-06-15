@@ -164,8 +164,12 @@ function OutcomeGrid({
 }) {
   if (!market) return null
   const isScorer = market.type === "anytime_scorer" || market.type === "first_scorer"
+  const isCorrectScore = market.type === "correct_score"
   return (
-    <div className={cn("grid gap-2", isScorer ? "sm:grid-cols-2" : "sm:grid-cols-3")}>
+    <div className={cn(
+      "grid gap-2",
+      isCorrectScore ? "grid-cols-2 sm:grid-cols-3" : isScorer ? "grid-cols-2" : "grid-cols-1 sm:grid-cols-3"
+    )}>
       {market.outcomes.map((o) => {
         const active = selectedKey === o.key
         return (
@@ -175,12 +179,12 @@ function OutcomeGrid({
             disabled={disabled}
             onClick={() => onPick(market.type, `${MARKET_LABELS[market.type]}: ${o.label}`, o.odds, { ...o.payload, __key: o.key })}
             className={cn(
-              "flex items-center justify-between rounded-xl border p-3 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+              "flex items-center justify-between gap-2 rounded-xl border p-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 min-w-0",
               active ? "border-primary bg-primary/10" : "border-border bg-card hover:border-primary/40",
             )}
           >
-            <span className="text-sm text-card-foreground">{o.label}</span>
-            <span className={cn("font-heading text-sm tabular", active ? "text-primary" : "text-gold")}>
+            <span className="text-xs text-card-foreground truncate min-w-0">{o.label}</span>
+            <span className={cn("font-heading text-xs tabular shrink-0", active ? "text-primary" : "text-gold")}>
               {formatOdds(o.odds)}
             </span>
           </button>

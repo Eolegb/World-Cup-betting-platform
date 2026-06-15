@@ -1,8 +1,11 @@
 import { requireUser, AppShell } from "@/components/app-shell"
 import { getMatches } from "@/lib/queries"
-import { Database, RefreshCw, FlaskConical } from "lucide-react"
+import { db } from "@/lib/db"
+import { user as userTable, profile } from "@/lib/db/schema"
+import { Database, RefreshCw, FlaskConical, Users } from "lucide-react"
 import { redirect } from "next/navigation"
 import { AdminActions } from "./actions"
+import { eq } from "drizzle-orm"
 
 export const dynamic = "force-dynamic"
 
@@ -16,6 +19,15 @@ export default async function AdminPage() {
   const scheduled = matches.filter((m) => m.status === "scheduled").length
   const finished = matches.filter((m) => m.status === "finished").length
 
+  const users = await db.select({
+    id: userTable.id,
+    name: userTable.name,
+    email: userTable.email,
+    balance: profile.balance,
+    isAdmin: profile.isAdmin,
+    streak: profile.streak,
+  }).from(userTable).leftJoin(profile, eq(userTable.id, profile.userId))
+
   return (
     <AppShell profile={p}>
       <div className="mb-6">
@@ -26,6 +38,42 @@ export default async function AdminPage() {
         <p className="mt-1 text-sm text-muted-foreground">
           Synchronisation des données, gestion des matchs et des paris.
         </p>
+      </div>
+
+      {/* Players list */}
+      <div className="mb-6 rounded-2xl border border-border bg-card overflow-hidden">
+        <div className="border-b border-border p-4">
+          <h2 className="flex items-center gap-2 font-heading text-base text-card-foreground">
+            <Users className="h-4 w-4 text-primary" />
+            Joueurs ({users.length})
+          </h2>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full caption-bottom text-sm">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="h-10 px-4 text-left font-medium text-muted-foreground">Nom</th>
+                <th className="h-10 px-4 text-left font-medium text-muted-foreground">Email</th>
+                <th className="h-10 px-4 text-left font-medium text-muted-foreground">ID</th>
+                <th className="h-10 px-4 text-right font-medium text-muted-foreground">Solde</th>
+                <th className="h-10 px-4 text-center font-medium text-muted-foreground">Streak</th>
+                <th className="h-10 px-4 text-center font-medium text-muted-foreground">Admin</th>
+              </tr>
+            </thead>
+            <tbody>
+              {users.map((u) => (
+                <tr key={u.id} className="border-b border-border transition-colors hover:bg-muted/50">
+                  <td className="p-3 font-medium text-card-foreground">{u.name}</td>
+                  <td className="p-3 text-xs text-muted-foreground">{u.email}</td>
+                  <td className="p-3 font-mono text-[10px] text-muted-foreground">{u.id}</td>
+                  <td className="p-3 text-right font-heading tabular text-foreground">{u.balance ?? 1000}€</td>
+                  <td className="p-3 text-center">{u.streak ? `🔥 ${u.streak}` : "—"}</td>
+                  <td className="p-3 text-center">{u.isAdmin ? "✅" : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Sync buttons */}
