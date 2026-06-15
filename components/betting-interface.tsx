@@ -256,13 +256,14 @@ function ScorerMinuteRange({
         Buteur
       </label>
       <Select value={player} onValueChange={(v) => setPlayer(v ?? "")} disabled={disabled}>
-        <SelectTrigger className="mb-4">
+        <SelectTrigger className="mb-4 w-full">
           <SelectValue placeholder="Choisir un joueur" />
         </SelectTrigger>
-        <SelectContent>
+        <SelectContent className="!min-w-[300px] !w-auto max-w-[95vw]">
           {players.map((p) => (
-            <SelectItem key={p.key} value={p.key}>
-              {p.label} · cote buteur {formatOdds(p.odds)}
+            <SelectItem key={p.key} value={p.key} className="pr-12">
+              <span className="truncate">{p.label}</span>
+              <span className="ml-auto shrink-0 pl-2 text-xs text-muted-foreground tabular">cote {formatOdds(p.odds)}</span>
             </SelectItem>
           ))}
         </SelectContent>
