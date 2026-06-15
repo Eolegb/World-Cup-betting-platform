@@ -42,10 +42,8 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   return (
     <main className="min-h-svh bg-background flex flex-col items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
-        <div className="flex items-center gap-2 mb-8 justify-center">
-          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30">
-            <span className="font-heading text-xl font-black tracking-tight">B</span>
-          </span>
+        <div className="flex items-center gap-3 mb-8 justify-center">
+          <img src="/logo.png" alt="BetRod" className="h-12 w-12 rounded-2xl object-contain" />
           <div className="leading-tight">
             <p className="font-heading text-xl text-foreground">BetRod</p>
             <p className="text-xs text-muted-foreground">Coupe du Monde 2026</p>
