@@ -15,7 +15,7 @@ import {
 } from "@/lib/db/schema"
 import { getUserId } from "@/lib/session"
 import { potentialPayout, MARKET_LABELS, type MarketType } from "@/lib/markets"
-import { and, desc, eq, gte, lt, or, sql } from "drizzle-orm"
+import { and, desc, eq, inArray, gte, lt, or, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 import { postActivity } from "./social"
 
@@ -161,7 +161,7 @@ export async function placeCombinedBet(bets: PlaceBetInput[], totalStake: number
   try {
     const result = await db.transaction(async (tx) => {
       const matchIds = [...new Set(bets.map((b) => b.matchId))]
-      const matches = await tx.select({ id: match.id, status: match.status }).from(match).where(sql`${match.id} = any(${matchIds})`)
+      const matches = await tx.select({ id: match.id, status: match.status }).from(match).where(inArray(match.id, matchIds))
       const statusById = new Map(matches.map((m) => [m.id, m.status]))
       for (const b of bets) {
         const s = statusById.get(b.matchId)

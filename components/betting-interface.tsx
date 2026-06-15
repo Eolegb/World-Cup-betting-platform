@@ -116,7 +116,7 @@ export function BettingInterface({
           <div className="sm:hidden mb-4">
             <Select value={activeTab} onValueChange={(v) => setActiveTab(v ?? availableTabs[0] ?? "")}>
               <SelectTrigger className="w-full">
-                <SelectValue />
+                <SelectValue>{MARKET_LABELS[activeTab as MarketType] ?? activeTab}</SelectValue>
               </SelectTrigger>
               <SelectContent>
                 {availableTabs.map((t) => (
