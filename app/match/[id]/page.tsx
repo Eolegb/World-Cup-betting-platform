@@ -3,7 +3,6 @@ import { requireUser, AppShell } from "@/components/app-shell"
 import { getMatch, getMatchEvents, marketsForMatch, getMatchBetsForUser } from "@/lib/queries"
 import { getBetsForMatch } from "@/app/actions/bets"
 import { LiveScore } from "@/components/live-score"
-import { MatchChat } from "@/components/match-chat"
 import { BettingTabs } from "@/components/betting-tabs"
 import { LiveBadge, StatusPill } from "@/components/match-bits"
 import { AutoRefresh } from "@/components/auto-refresh"
@@ -49,6 +48,7 @@ export default async function MatchDetailPage({
     <AppShell profile={p}>
       {isLive && <AutoRefresh seconds={30} />}
 
+      {/* Match header */}
       <div className="relative mb-6 overflow-hidden rounded-2xl border border-border">
         <div className="flex h-2">
           <div className="flex-1" style={{ backgroundColor: homeColors.primary }} />
@@ -108,98 +108,93 @@ export default async function MatchDetailPage({
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
-        <aside className="space-y-4">
-          <MatchChat matchId={matchId} />
-        </aside>
-
-        <div className="min-w-0 space-y-6">
-          {goals.length > 0 && (
-            <div className="rounded-2xl border border-border bg-card p-4">
-              <h3 className="mb-3 flex items-center gap-2 font-heading text-sm text-card-foreground">
-                <Activity className="h-4 w-4 text-live" />
-                Événements du match
-              </h3>
-              <div className="flex flex-col gap-2">
-                {goals.map((e) => (
-                  <div key={e.id} className="flex items-center gap-3 rounded-lg bg-secondary/50 px-3 py-2">
-                    <span className="font-heading text-xs tabular text-primary">
-                      {e.extraMinute ? `${e.minute}+${e.extraMinute}'` : `${e.minute}'`}
-                    </span>
-                    <span className="text-sm text-card-foreground">
-                      {e.player ?? "Inconnu"} ({e.team}) ⚽
-                    </span>
-                  </div>
-                ))}
-              </div>
+      {/* Events + who bets what + my bets (compact, collapsible feel) */}
+      <div className="mb-6 space-y-3">
+        {goals.length > 0 && (
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <h3 className="mb-3 flex items-center gap-2 font-heading text-sm text-card-foreground">
+              <Activity className="h-4 w-4 text-live" /> Événements
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {goals.map((e) => (
+                <div key={e.id} className="inline-flex items-center gap-2 rounded-full bg-secondary/60 px-3 py-1.5">
+                  <span className="font-heading text-xs tabular text-primary">
+                    {e.extraMinute ? `${e.minute}+${e.extraMinute}'` : `${e.minute}'`}
+                  </span>
+                  <span className="text-sm">{e.player ?? "Inconnu"}</span>
+                  <span>⚽</span>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
+        )}
 
-          {allBets && allBets.length > 0 && (
-            <div className="rounded-2xl border border-border bg-card p-4">
-              <h3 className="mb-3 flex items-center gap-2 font-heading text-sm text-card-foreground">
-                <Users className="h-4 w-4 text-primary" />
-                Qui parie quoi {isScheduled ? "(détails cachés avant le coup d'envoi)" : ""}
-              </h3>
-              <div className="flex flex-col gap-2">
-                {allBets.slice(0, 10).map((b: any) => (
-                  <div key={b.betId ?? b.id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-2">
-                    <div className="flex items-center gap-3">
-                      <Avatar name={b.displayName ?? "?"} size="sm" color={b.avatarColor} />
-                      <div>
-                        <p className="text-sm font-medium text-card-foreground">{b.displayName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {isScheduled ? `a parié sur ${b.marketType === "combined" ? "un combiné" : b.label?.split(":")[0] ?? "un pari"}` : b.label}
-                        </p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-heading text-sm tabular text-gold">{formatMoney(b.stake ?? 0)}</p>
-                      <p className="text-xs text-muted-foreground">Cote {formatOdds(b.odds ?? 1)}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {userBets.length > 0 && (
-            <div className="rounded-2xl border border-border bg-card p-4">
-              <h3 className="mb-3 font-heading text-sm text-card-foreground">Mes paris sur ce match</h3>
-              <div className="flex flex-col gap-2">
-                {userBets.map((b) => (
-                  <div key={b.id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-2">
+        {allBets && allBets.length > 0 && (
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <h3 className="mb-3 flex items-center gap-2 font-heading text-sm text-card-foreground">
+              <Users className="h-4 w-4 text-primary" />
+              Qui parie quoi {isScheduled ? "(détails cachés avant le coup d'envoi)" : ""}
+            </h3>
+            <div className="flex flex-col gap-2">
+              {allBets.slice(0, 10).map((b: any) => (
+                <div key={b.betId ?? b.id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-2">
+                  <div className="flex items-center gap-3">
+                    <Avatar name={b.displayName ?? "?"} size="sm" color={b.avatarColor} />
                     <div>
-                      <p className="text-sm text-card-foreground">
-                        {b.label}
-                        {b.isJoker && <span className="ml-1.5 inline-flex items-center rounded bg-gold/20 px-1.5 py-0.5 text-[10px] text-gold">🎩 x2</span>}
-                      </p>
+                      <p className="text-sm font-medium text-card-foreground">{b.displayName}</p>
                       <p className="text-xs text-muted-foreground">
-                        Mise {formatMoney(b.stake)} · Cote {formatOdds(b.odds)}
-                        {b.bonusPoints > 0 && <span className="ml-1 text-primary">+{b.bonusPoints} pts bonus</span>}
+                        {isScheduled ? `a parié sur ${b.marketType === "combined" ? "un combiné" : b.label?.split(":")[0] ?? "un pari"}` : b.label}
                       </p>
-                    </div>
-                    <div className="text-right">
-                      <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
-                        b.status === "won" ? "bg-primary/20 text-primary" : b.status === "lost" ? "bg-destructive/20 text-destructive" : "bg-muted text-muted-foreground"
-                      }`}>
-                        {betStatusLabel(b.status)}
-                      </span>
                     </div>
                   </div>
-                ))}
-              </div>
+                  <div className="text-right">
+                    <p className="font-heading text-sm tabular text-gold">{formatMoney(b.stake ?? 0)}</p>
+                    <p className="text-xs text-muted-foreground">Cote {formatOdds(b.odds ?? 1)}</p>
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
+          </div>
+        )}
 
-          {canBet && <BettingTabs matchId={m.id} markets={markets} balance={p.balance} />}
-          {!canBet && !isScheduled && (
-            <div className="rounded-2xl border border-border bg-card p-4 text-center text-sm text-muted-foreground">
-              Les paris sont fermés pour ce match.
+        {userBets.length > 0 && (
+          <div className="rounded-2xl border border-border bg-card p-4">
+            <h3 className="mb-3 font-heading text-sm text-card-foreground">Mes paris sur ce match</h3>
+            <div className="flex flex-col gap-2">
+              {userBets.map((b) => (
+                <div key={b.id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-2">
+                  <div>
+                    <p className="text-sm text-card-foreground">
+                      {b.label}
+                      {b.isJoker && <span className="ml-1.5 inline-flex items-center rounded bg-gold/20 px-1.5 py-0.5 text-[10px] text-gold">🎩 x2</span>}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Mise {formatMoney(b.stake)} · Cote {formatOdds(b.odds)}
+                      {b.bonusPoints > 0 && <span className="ml-1 text-primary">+{b.bonusPoints} pts</span>}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                      b.status === "won" ? "bg-primary/20 text-primary" : b.status === "lost" ? "bg-destructive/20 text-destructive" : "bg-muted text-muted-foreground"
+                    }`}>
+                      {betStatusLabel(b.status)}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
+
+      {/* Betting zone - full width, prominent */}
+      {canBet ? (
+        <BettingTabs matchId={m.id} markets={markets} balance={p.balance} />
+      ) : !isScheduled ? (
+        <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
+          Les paris sont fermés pour ce match.
+        </div>
+      ) : null}
     </AppShell>
   )
 }
