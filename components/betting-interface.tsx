@@ -93,7 +93,17 @@ export function BettingInterface({
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-      <div>
+      <div className="rounded-2xl border border-primary/20 bg-card p-4 sm:p-6">
+        <div className="mb-4 flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
+            <Coins className="h-4 w-4 text-primary" />
+          </span>
+          <div>
+            <h3 className="font-heading text-base text-card-foreground">Zone de paris</h3>
+            <p className="text-xs text-muted-foreground">Choisis un marché et une sélection</p>
+          </div>
+        </div>
+
         {!canBet && (
           <div className="mb-4 rounded-xl border border-border bg-secondary/50 p-3 text-sm text-muted-foreground">
             Les paris sont fermés pour ce match (il a commencé ou est terminé).
@@ -163,13 +173,9 @@ function OutcomeGrid({
   onPick: (marketType: MarketType, label: string, odds: number, payload: Record<string, unknown>) => void
 }) {
   if (!market) return null
-  const isScorer = market.type === "anytime_scorer" || market.type === "first_scorer"
-  const isCorrectScore = market.type === "correct_score"
+
   return (
-    <div className={cn(
-      "grid gap-2",
-      isCorrectScore ? "grid-cols-2 sm:grid-cols-3" : isScorer ? "grid-cols-2" : "grid-cols-1 sm:grid-cols-3"
-    )}>
+    <div className="flex flex-col gap-1.5">
       {market.outcomes.map((o) => {
         const active = selectedKey === o.key
         return (
@@ -179,12 +185,17 @@ function OutcomeGrid({
             disabled={disabled}
             onClick={() => onPick(market.type, `${MARKET_LABELS[market.type]}: ${o.label}`, o.odds, { ...o.payload, __key: o.key })}
             className={cn(
-              "flex items-center justify-between gap-2 rounded-xl border p-2.5 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 min-w-0",
-              active ? "border-primary bg-primary/10" : "border-border bg-card hover:border-primary/40",
+              "flex items-center justify-between rounded-xl px-4 py-3 text-left transition-all disabled:opacity-40",
+              active
+                ? "bg-primary/10 border border-primary/50"
+                : "bg-card border border-border hover:border-primary/30 hover:bg-secondary/30",
             )}
           >
-            <span className="text-xs text-card-foreground truncate min-w-0">{o.label}</span>
-            <span className={cn("font-heading text-xs tabular shrink-0", active ? "text-primary" : "text-gold")}>
+            <span className="text-sm font-medium text-card-foreground">{o.label}</span>
+            <span className={cn(
+              "font-heading text-lg tabular",
+              active ? "text-primary" : "text-gold"
+            )}>
               {formatOdds(o.odds)}
             </span>
           </button>
@@ -347,8 +358,9 @@ function BetSlip({
           <div className="flex flex-col gap-4">
             <div className="rounded-xl border border-border bg-background/40 p-3">
               <p className="text-sm text-card-foreground text-pretty">{selection.label}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Cote <span className="font-heading tabular text-gold">{formatOdds(selection.odds)}</span>
+              <p className="mt-2 flex items-baseline gap-2">
+                <span className="text-xs text-muted-foreground">Cote</span>
+                <span className="font-heading text-2xl tabular text-gold">{formatOdds(selection.odds)}</span>
               </p>
             </div>
 
