@@ -29,8 +29,8 @@ export function AppNav({ displayName, balance, isAdmin }: NavProps) {
     <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4">
         <Link href="/" className="flex items-center gap-2 shrink-0">
-          <img src="/logo.png" alt="BetRod" className="h-9 w-9 rounded-xl object-contain" />
-          <span className="font-heading text-base leading-none hidden sm:block">
+          <img src="/logo.png" alt="BetRod" className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl object-contain" />
+          <span className="font-heading text-base leading-none">
             Bet<span className="text-primary">Rod</span>
           </span>
         </Link>
