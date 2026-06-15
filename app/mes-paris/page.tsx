@@ -47,19 +47,19 @@ export default async function MyBetsPage() {
         <>
           {/* Stats summary */}
           <div className="mb-6 grid gap-3 sm:grid-cols-4">
-            <div className="rounded-2xl border border-border bg-card p-4">
+            <div className="rounded-2xl border border-border/40 glass p-4">
               <p className="text-xs text-muted-foreground">Total misé</p>
               <p className="mt-1 font-heading text-xl tabular text-foreground">{formatMoney(totalStaked)}</p>
             </div>
-            <div className="rounded-2xl border border-border bg-card p-4">
+            <div className="rounded-2xl border border-border/40 glass p-4">
               <p className="text-xs text-muted-foreground">Gains</p>
               <p className="mt-1 font-heading text-xl tabular text-primary">{formatMoney(totalWon)}</p>
             </div>
-            <div className="rounded-2xl border border-border bg-card p-4">
+            <div className="rounded-2xl border border-border/40 glass p-4">
               <p className="text-xs text-muted-foreground">Pertes</p>
               <p className="mt-1 font-heading text-xl tabular text-destructive">{formatMoney(totalLost)}</p>
             </div>
-            <div className="rounded-2xl border border-border bg-card p-4">
+            <div className="rounded-2xl border border-border/40 glass p-4">
               <p className="text-xs text-muted-foreground">Résultat net</p>
               <div className="mt-1 flex items-center gap-1">
                 {netResult >= 0 ? (
@@ -77,17 +77,17 @@ export default async function MyBetsPage() {
           {/* Advanced stats */}
           {stats && (stats.successRate > 0 || stats.favoriteTeam) && (
             <div className="mb-6 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-2xl border border-border bg-card p-4">
+              <div className="rounded-2xl border border-border/40 glass p-4">
                 <p className="text-xs text-muted-foreground">Taux de réussite</p>
                 <p className="mt-1 font-heading text-xl tabular text-primary">
                   {stats.successRate ? `${Math.round(stats.successRate)}%` : "—"}
                 </p>
               </div>
-              <div className="rounded-2xl border border-border bg-card p-4">
+              <div className="rounded-2xl border border-border/40 glass p-4">
                 <p className="text-xs text-muted-foreground">Meilleur marché</p>
                 <p className="mt-1 font-heading text-lg text-gold truncate">{stats.bestMarket ?? "—"}</p>
               </div>
-              <div className="rounded-2xl border border-border bg-card p-4">
+              <div className="rounded-2xl border border-border/40 glass p-4">
                 <p className="text-xs text-muted-foreground">Équipe fétiche</p>
                 <p className="mt-1 font-heading text-lg text-foreground truncate">{stats.favoriteTeam ?? "—"}</p>
               </div>
@@ -113,7 +113,7 @@ export default async function MyBetsPage() {
               </h2>
               <div className="flex flex-col gap-2">
                 {pendingBets.map(({ bet: b, match: m }) => (
-                  <div key={b.id} className="flex items-center justify-between rounded-2xl border border-border bg-card p-4 transition-colors hover:border-primary/50">
+                  <div key={b.id} className="flex items-center justify-between rounded-2xl border border-border/40 glass p-4 transition-all duration-200 hover:border-primary/30 hover-lift">
                     <Link href={`/match/${b.matchId}`} className="min-w-0 flex-1">
                       <p className="text-sm font-medium text-card-foreground truncate">
                         {b.label}

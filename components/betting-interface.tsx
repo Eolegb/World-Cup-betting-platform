@@ -94,7 +94,7 @@ export function BettingInterface({
 
   return (
     <div className="grid gap-6 md:grid-cols-[1fr_280px] lg:grid-cols-[1fr_320px]">
-      <div className="rounded-2xl border border-primary/20 bg-card p-4 sm:p-6">
+      <div className="rounded-3xl border border-border/50 glass p-3 sm:p-6 animate-scale-in">
         <div className="mb-4 flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
             <Coins className="h-4 w-4 text-primary" />
@@ -201,10 +201,10 @@ function OutcomeGrid({
             disabled={disabled}
             onClick={() => onPick(market.type, `${MARKET_LABELS[market.type]}: ${o.label}`, o.odds, { ...o.payload, __key: o.key })}
             className={cn(
-              "flex items-center justify-between rounded-xl px-4 py-3 text-left transition-all disabled:opacity-40",
+              "flex items-center justify-between rounded-xl px-4 py-3 text-left transition-all duration-200 disabled:opacity-40 interactive",
               active
                 ? "bg-primary/10 border border-primary/50"
-                : "bg-card border border-border hover:border-primary/30 hover:bg-secondary/30",
+                : "glass border border-border/40 hover:border-primary/30 hover:bg-primary/5",
             )}
           >
             <span className="text-sm font-medium text-card-foreground">{o.label}</span>
@@ -354,7 +354,7 @@ function BetSlip({
 
   return (
     <aside className="lg:sticky lg:top-20 lg:self-start">
-      <div className="rounded-2xl border border-border bg-card p-4">
+      <div className="rounded-3xl border border-gold/20 glass-strong p-4 shadow-lg shadow-gold/5">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="flex items-center gap-2 font-heading text-base text-card-foreground">
             <Coins className="h-4 w-4 text-gold" />

@@ -70,7 +70,7 @@ export default function MatchCard({ match: m }: { match: MatchRow }) {
   return (
     <Link
       href={`/match/${m.id}`}
-      className="group block overflow-hidden rounded-2xl border border-border bg-card transition-colors hover:border-primary/50"
+      className="group block overflow-hidden rounded-2xl border border-border/60 glass hover-lift hover-glow interactive"
     >
       <div
         className="h-1.5 w-full"

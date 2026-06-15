@@ -49,8 +49,8 @@ export default async function MatchDetailPage({
       {isLive && <AutoRefresh seconds={30} />}
 
       {/* Match header */}
-      <div className="relative mb-6 overflow-hidden rounded-2xl border border-border">
-        <div className="flex h-2">
+      <div className="relative mb-6 overflow-hidden rounded-3xl border border-border/50 glass-strong animate-scale-in">
+        <div className="flex h-1.5">
           <div className="flex-1" style={{ backgroundColor: homeColors.primary }} />
           <div className="flex-1" style={{ backgroundColor: awayColors.primary }} />
         </div>
@@ -136,7 +136,7 @@ export default async function MatchDetailPage({
       {/* Events + who bets what + my bets (compact, collapsible feel) */}
       <div className="mb-6 space-y-3">
         {goals.length > 0 && (
-          <div className="rounded-2xl border border-border bg-card p-4">
+          <div className="rounded-2xl border border-border/40 glass p-4">
             <h3 className="mb-3 flex items-center gap-2 font-heading text-sm text-card-foreground">
               <Activity className="h-4 w-4 text-live" /> Événements
             </h3>
@@ -155,7 +155,7 @@ export default async function MatchDetailPage({
         )}
 
         {allBets && allBets.length > 0 && (
-          <div className="rounded-2xl border border-border bg-card p-4">
+          <div className="rounded-2xl border border-border/40 glass p-4">
             <h3 className="mb-3 flex items-center gap-2 font-heading text-sm text-card-foreground">
               <Users className="h-4 w-4 text-primary" />
               Qui parie quoi {isScheduled ? "(détails cachés avant le coup d'envoi)" : ""}
@@ -183,7 +183,7 @@ export default async function MatchDetailPage({
         )}
 
         {userBets.length > 0 && (
-          <div className="rounded-2xl border border-border bg-card p-4">
+          <div className="rounded-2xl border border-border/40 glass p-4">
             <h3 className="mb-3 font-heading text-sm text-card-foreground">Mes paris sur ce match</h3>
             <div className="flex flex-col gap-2">
               {userBets.map((b) => (
