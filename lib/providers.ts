@@ -1,13 +1,14 @@
 // =============================================================================
 // External data providers with shared server-side caching.
 // -----------------------------------------------------------------------------
-// Uses football-data.org (free tier: 10 req/min) for match data and
-// The Odds API (free tier) for betting odds.
-// All calls go through this module which caches results in-memory with TTLs.
-// The /api/sync route is the only thing that triggers polling.
+// Sources:
+//   - football-data.org (free) → fixtures list, scores (always works for 2026)
+//   - api-football.com (api-sports.io) → goals, events, minute details (paid plan)
+//   - the-odds-api.com → betting odds (free)
 // =============================================================================
 
 const FOOTBALL_DATA_BASE = "https://api.football-data.org/v4"
+const API_FOOTBALL_BASE = "https://v3.football.api-sports.io"
 const ODDS_API_BASE = "https://api.the-odds-api.com/v4"
 
 export const WORLD_CUP_SEASON = 2026
@@ -86,6 +87,10 @@ export function hasFootballKey() {
   return Boolean(process.env.FOOTBALL_DATA_KEY)
 }
 
+export function hasApiFootballKey() {
+  return Boolean(process.env.API_FOOTBALL_KEY)
+}
+
 export function hasOddsKey() {
   return Boolean(process.env.ODDS_API_KEY)
 }
@@ -143,6 +148,11 @@ export async function fetchMatchDetail(fixtureId: number): Promise<FootballDataM
 
 /** Fetch detailed match including goals, bookings. Cached 60s. */
 export async function fetchFixtureEvents(fixtureId: number): Promise<FootballDataEvent[]> {
+  // Try api-football first (has scorer names + exact minutes on paid plan)
+  const apiEvents = await fetchApiFootballEvents(fixtureId)
+  if (apiEvents.length > 0) return apiEvents
+
+  // Fallback to football-data.org
   const key = `match:${fixtureId}`
   const cached = getCached<FootballDataEvent[]>(key)
   if (cached) return cached
@@ -157,31 +167,91 @@ export async function fetchFixtureEvents(fixtureId: number): Promise<FootballDat
   const events: FootballDataEvent[] = []
   if (match?.goals) {
     for (const g of match.goals) {
-      events.push({
-        minute: g.minute,
-        extraTime: g.extraTime,
-        type: "Goal",
-        team: g.team,
-        scorer: g.scorer,
-        detail: g.type,
-      })
+      events.push({ minute: g.minute, extraTime: g.extraTime, type: "Goal", team: g.team, scorer: g.scorer, detail: g.type })
     }
   }
   if (match?.bookings) {
     for (const b of match.bookings) {
-      events.push({
-        minute: b.minute,
-        extraTime: null,
-        type: "Card",
-        team: b.team,
-        scorer: b.player,
-        detail: b.card,
-      })
+      events.push({ minute: b.minute, extraTime: null, type: "Card", team: b.team, scorer: b.player, detail: b.card })
     }
   }
 
   setCached(key, events, 60 * 1000)
   return events
+}
+
+// --- api-football.com (api-sports.io) -------------------------------------
+
+type ApiFootballEventRaw = {
+  time: { elapsed: number | null; extra: number | null }
+  team: { id: number; name: string }
+  player: { id: number | null; name: string | null }
+  assist: { id: number | null; name: string | null }
+  type: string // "Goal" | "Card" | "subst" | "Var"
+  detail: string
+  comments: string | null
+}
+
+async function fetchApiFootballEvents(fixtureId: number): Promise<FootballDataEvent[]> {
+  const key = `apifoot:events:${fixtureId}`
+  const cached = getCached<FootballDataEvent[]>(key)
+  if (cached) return cached
+  if (!hasApiFootballKey()) return []
+
+  try {
+    const url = `${API_FOOTBALL_BASE}/fixtures/events?fixture=${fixtureId}`
+    const res = await fetch(url, { headers: { "x-apisports-key": process.env.API_FOOTBALL_KEY! }, cache: "no-store" })
+    if (!res.ok) return []
+    const json = await res.json()
+    const raw: ApiFootballEventRaw[] = json?.response ?? []
+
+    const events: FootballDataEvent[] = raw.map(e => ({
+      minute: e.time.elapsed ?? 0,
+      extraTime: e.time.extra,
+      type: e.type,
+      team: e.team,
+      scorer: e.player?.name ? { id: e.player.id ?? 0, name: e.player.name } : null,
+      detail: e.detail ?? e.type,
+    }))
+
+    if (events.length > 0) {
+      setCached(key, events, 60 * 1000)
+      console.log(`[api-football] ${events.length} events for fixture ${fixtureId}`)
+    }
+    return events
+  } catch {
+    return []
+  }
+}
+
+// Also add a function to find api-football fixture IDs by team names
+export async function findApiFootballFixtureId(homeTeam: string, awayTeam: string): Promise<number | null> {
+  if (!hasApiFootballKey()) return null
+  const key = `apifoot:fix:${homeTeam}:${awayTeam}`
+  const cached = getCached<number | null>(key)
+  if (cached !== null && cached !== undefined) return cached
+
+  try {
+    // Search api-football for fixtures matching these teams
+    const url = `${API_FOOTBALL_BASE}/fixtures?league=1&season=2026`
+    const res = await fetch(url, { headers: { "x-apisports-key": process.env.API_FOOTBALL_KEY! }, cache: "no-store" })
+    if (!res.ok) { setCached(key, null, 3600000); return null }
+
+    const json = await res.json()
+    if (json?.errors?.plan) { setCached(key, null, 3600000); return null }
+
+    const fixtures = json?.response ?? []
+    for (const f of fixtures) {
+      if (f.teams.home.name === homeTeam && f.teams.away.name === awayTeam) {
+        setCached(key, f.fixture.id, 3600000)
+        return f.fixture.id
+      }
+    }
+    setCached(key, null, 3600000)
+    return null
+  } catch {
+    return null
+  }
 }
 
 // --- Odds (unchanged, still The Odds API) -------------------------------
