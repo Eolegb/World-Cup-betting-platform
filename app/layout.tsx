@@ -16,11 +16,15 @@ const archivo = Archivo({
 })
 
 export const metadata: Metadata = {
-  title: "BetRod — Coupe du Monde 2026",
+  title: "BetRod",
   description:
     "Plateforme de paris conviviale entre amis pour la Coupe du Monde 2026 : pronostics live, points et classement.",
   generator: "v0.app",
   manifest: "/manifest.json",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 }
 
 export const viewport = {
