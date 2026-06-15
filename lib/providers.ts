@@ -1,17 +1,15 @@
 // =============================================================================
 // External data providers with shared server-side caching.
 // -----------------------------------------------------------------------------
-// IMPORTANT: api-football allows only ~100 requests/day on the free plan, so we
-// NEVER call it per-user. All calls go through this module which caches results
-// in-memory (per server instance) with TTLs. The /api/sync route is the only
-// thing that triggers live polling, and it is rate-limited there.
+// Uses football-data.org (free tier: 10 req/min) for match data and
+// The Odds API (free tier) for betting odds.
+// All calls go through this module which caches results in-memory with TTLs.
+// The /api/sync route is the only thing that triggers polling.
 // =============================================================================
 
-const API_FOOTBALL_BASE = "https://v3.football.api-sports.io"
+const FOOTBALL_DATA_BASE = "https://api.football-data.org/v4"
 const ODDS_API_BASE = "https://api.the-odds-api.com/v4"
 
-// World Cup league id in api-football is 1; season 2026.
-export const WORLD_CUP_LEAGUE_ID = 1
 export const WORLD_CUP_SEASON = 2026
 
 type CacheEntry<T> = { value: T; expires: number }
@@ -27,90 +25,140 @@ function setCached<T>(key: string, value: T, ttlMs: number) {
   cache.set(key, { value, expires: Date.now() + ttlMs })
 }
 
-export type ApiFootballFixture = {
-  fixture: {
-    id: number
-    date: string
-    venue?: { name?: string | null }
-    status: { short: string; elapsed: number | null }
+// --- football-data.org types --------------------------------------------
+
+export type FootballDataMatch = {
+  id: number
+  utcDate: string
+  status: string // SCHEDULED | TIMED | LIVE | IN_PLAY | PAUSED | FINISHED | POSTPONED | CANCELLED
+  matchday: number | null
+  stage: string
+  group: string | null
+  venue: string | null
+  homeTeam: { id: number; name: string; shortName: string; tla: string }
+  awayTeam: { id: number; name: string; shortName: string; tla: string }
+  score: {
+    winner: string | null
+    duration: string
+    fullTime: { home: number | null; away: number | null }
+    halfTime: { home: number | null; away: number | null }
   }
-  league: { round?: string }
-  teams: {
-    home: { name: string; winner: boolean | null }
-    away: { name: string; winner: boolean | null }
-  }
-  goals: { home: number | null; away: number | null }
+  goals?: {
+    minute: number
+    extraTime: number | null
+    type: string
+    team: { id: number; name: string }
+    scorer: { id: number; name: string } | null
+    assist: { id: number; name: string } | null
+  }[]
+  bookings?: {
+    minute: number
+    team: { id: number; name: string }
+    player: { id: number; name: string }
+    card: string
+  }[]
 }
 
-export type ApiFootballEvent = {
-  time: { elapsed: number | null; extra: number | null }
-  team: { name: string }
-  player: { name: string | null }
-  type: string // "Goal" | "Card" | "subst" | "Var"
-  detail: string
+// Legacy alias for backward compatibility
+export type ApiFootballFixture = FootballDataMatch
+
+export type FootballDataEvent = {
+  minute: number
+  extraTime: number | null
+  type: string
+  team: { id: number; name: string }
+  scorer: { id: number; name: string } | null
+  detail?: string
 }
 
-function footballHeaders() {
+// Legacy alias
+export type ApiFootballEvent = FootballDataEvent
+
+// --- Auth helpers -------------------------------------------------------
+
+function footballDataHeaders() {
   return {
-    "x-apisports-key": process.env.API_FOOTBALL_KEY ?? "",
+    "X-Auth-Token": process.env.FOOTBALL_DATA_KEY ?? "",
   }
 }
 
 export function hasFootballKey() {
-  return Boolean(process.env.API_FOOTBALL_KEY)
+  return Boolean(process.env.FOOTBALL_DATA_KEY)
 }
 
 export function hasOddsKey() {
   return Boolean(process.env.ODDS_API_KEY)
 }
 
-/** Fetch fixtures for the World Cup. Cached 6h (fixtures rarely change). */
-export async function fetchFixtures(): Promise<ApiFootballFixture[]> {
+// --- Match data ---------------------------------------------------------
+
+/** Fetch all World Cup matches. Cached 2h. */
+export async function fetchFixtures(): Promise<FootballDataMatch[]> {
   const key = "fixtures"
-  const cached = getCached<ApiFootballFixture[]>(key)
+  const cached = getCached<FootballDataMatch[]>(key)
   if (cached) return cached
   if (!hasFootballKey()) return []
 
-  const url = `${API_FOOTBALL_BASE}/fixtures?league=${WORLD_CUP_LEAGUE_ID}&season=${WORLD_CUP_SEASON}`
-  const res = await fetch(url, { headers: footballHeaders(), cache: "no-store" })
+  // Football-data.org doesn't support offset; fetch all in one request
+  const url = `${FOOTBALL_DATA_BASE}/competitions/WC/matches?season=${WORLD_CUP_SEASON}&limit=200`
+  const res = await fetch(url, { headers: footballDataHeaders(), cache: "no-store" })
   if (!res.ok) return []
   const json = await res.json()
-  const data: ApiFootballFixture[] = json?.response ?? []
-  setCached(key, data, 6 * 60 * 60 * 1000)
+  const data: FootballDataMatch[] = json?.matches ?? []
+  setCached(key, data, 2 * 60 * 60 * 1000)
   return data
 }
 
-/** Fetch live fixtures only. Cached 60s. */
-export async function fetchLiveFixtures(): Promise<ApiFootballFixture[]> {
-  const key = "fixtures:live"
-  const cached = getCached<ApiFootballFixture[]>(key)
+/** Fetch live/in-play matches from the cached fixtures. */
+export async function fetchLiveFixtures(): Promise<FootballDataMatch[]> {
+  const fixtures = await fetchFixtures()
+  return fixtures.filter((m) => m.status === "LIVE" || m.status === "IN_PLAY" || m.status === "PAUSED")
+}
+
+/** Fetch detailed match including goals, bookings. Cached 60s. */
+export async function fetchFixtureEvents(fixtureId: number): Promise<FootballDataEvent[]> {
+  const key = `match:${fixtureId}`
+  const cached = getCached<FootballDataEvent[]>(key)
   if (cached) return cached
   if (!hasFootballKey()) return []
 
-  const url = `${API_FOOTBALL_BASE}/fixtures?league=${WORLD_CUP_LEAGUE_ID}&season=${WORLD_CUP_SEASON}&live=all`
-  const res = await fetch(url, { headers: footballHeaders(), cache: "no-store" })
+  const url = `${FOOTBALL_DATA_BASE}/matches/${fixtureId}`
+  const res = await fetch(url, { headers: footballDataHeaders(), cache: "no-store" })
   if (!res.ok) return []
   const json = await res.json()
-  const data: ApiFootballFixture[] = json?.response ?? []
-  setCached(key, data, 60 * 1000)
-  return data
+  const match = json as FootballDataMatch | null
+
+  const events: FootballDataEvent[] = []
+  if (match?.goals) {
+    for (const g of match.goals) {
+      events.push({
+        minute: g.minute,
+        extraTime: g.extraTime,
+        type: "Goal",
+        team: g.team,
+        scorer: g.scorer,
+        detail: g.type,
+      })
+    }
+  }
+  if (match?.bookings) {
+    for (const b of match.bookings) {
+      events.push({
+        minute: b.minute,
+        extraTime: null,
+        type: "Card",
+        team: b.team,
+        scorer: b.player,
+        detail: b.card,
+      })
+    }
+  }
+
+  setCached(key, events, 60 * 1000)
+  return events
 }
 
-/** Fetch events (goals, cards) for a fixture. Cached 60s. */
-export async function fetchFixtureEvents(fixtureId: number): Promise<ApiFootballEvent[]> {
-  const key = `events:${fixtureId}`
-  const cached = getCached<ApiFootballEvent[]>(key)
-  if (cached) return cached
-  if (!hasFootballKey()) return []
-
-  const url = `${API_FOOTBALL_BASE}/fixtures/events?fixture=${fixtureId}`
-  const res = await fetch(url, { headers: footballHeaders(), cache: "no-store" })
-  if (!res.ok) return []
-  const json = await res.json()
-  const data: ApiFootballEvent[] = json?.response ?? []
-  setCached(key, data, 60 * 1000)
-  return data
-}
+// --- Odds (unchanged, still The Odds API) -------------------------------
 
 export type OddsApiEvent = {
   id: string
@@ -126,7 +174,7 @@ export type OddsApiEvent = {
   }[]
 }
 
-/** Fetch odds for the World Cup. Cached 12h to preserve the daily quota. */
+/** Fetch odds for the World Cup. Cached 12h. */
 export async function fetchOdds(): Promise<OddsApiEvent[]> {
   const key = "odds"
   const cached = getCached<OddsApiEvent[]>(key)
