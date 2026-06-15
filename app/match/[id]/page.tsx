@@ -108,7 +108,11 @@ export default async function MatchDetailPage({
         </div>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-6 lg:grid-cols-[320px_1fr]">
+        <aside className="space-y-4">
+          <MatchChat matchId={matchId} />
+        </aside>
+
         <div className="min-w-0 space-y-6">
           {goals.length > 0 && (
             <div className="rounded-2xl border border-border bg-card p-4">
@@ -195,10 +199,6 @@ export default async function MatchDetailPage({
             </div>
           )}
         </div>
-
-        <aside className="space-y-4">
-          <MatchChat matchId={matchId} />
-        </aside>
       </div>
     </AppShell>
   )
