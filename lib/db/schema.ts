@@ -55,16 +55,20 @@ export const verification = pgTable("verification", {
 
 // --- App tables ------------------------------------------------------------
 
-// Per-user profile: balance (starts at 1000), display name, admin flag.
+export const AVATAR_COLORS = ["#e74c3c", "#3498db", "#2ecc71", "#f39c12", "#9b59b6", "#1abc9c", "#e67e22", "#34495e"]
+
 export const profile = pgTable("profile", {
   userId: text("userId").primaryKey(),
   displayName: text("displayName").notNull(),
   balance: integer("balance").notNull().default(1000),
   isAdmin: boolean("isAdmin").notNull().default(false),
+  avatarColor: text("avatarColor").notNull().default("#3498db"),
+  streak: integer("streak").notNull().default(0),
+  bestStreak: integer("bestStreak").notNull().default(0),
+  jokerUsedAt: timestamp("jokerUsedAt"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 })
 
-// A World Cup 2026 match.
 export const match = pgTable("match", {
   id: serial("id").primaryKey(),
   externalId: bigint("externalId", { mode: "number" }).unique(),
@@ -75,7 +79,6 @@ export const match = pgTable("match", {
   kickoff: timestamp("kickoff").notNull(),
   stage: text("stage"),
   venue: text("venue"),
-  // scheduled | live | finished
   status: text("status").notNull().default("scheduled"),
   elapsed: integer("elapsed"),
   homeScore: integer("homeScore").notNull().default(0),
@@ -84,14 +87,12 @@ export const match = pgTable("match", {
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 })
 
-// Live events for a match (goals carry player + minute, used for resolution).
 export const matchEvent = pgTable(
   "match_event",
   {
     id: serial("id").primaryKey(),
     matchId: integer("matchId").notNull(),
     externalId: text("externalId"),
-    // goal | card | subst | var
     type: text("type").notNull(),
     detail: text("detail"),
     player: text("player"),
@@ -105,7 +106,6 @@ export const matchEvent = pgTable(
   ]
 )
 
-// A placed bet. `selection` holds market-specific payload as JSON.
 export const bet = pgTable("bet", {
   id: serial("id").primaryKey(),
   userId: text("userId").notNull(),
@@ -118,14 +118,14 @@ export const bet = pgTable("bet", {
   stake: integer("stake").notNull(),
   odds: numeric("odds", { precision: 7, scale: 2 }).notNull(),
   potentialPayout: integer("potentialPayout").notNull(),
-  // pending | won | lost | void
   status: text("status").notNull().default("pending"),
   payout: integer("payout").notNull().default(0),
+  isJoker: boolean("isJoker").notNull().default(false),
+  bonusPoints: integer("bonusPoints").notNull().default(0),
   settledAt: timestamp("settledAt"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 })
 
-// Immutable record of every balance change.
 export const ledger = pgTable("ledger", {
   id: serial("id").primaryKey(),
   userId: text("userId").notNull(),
@@ -135,3 +135,79 @@ export const ledger = pgTable("ledger", {
   reason: text("reason").notNull(),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
 })
+
+// --- Social tables ---------------------------------------------------------
+
+export const activityFeed = pgTable("activity_feed", {
+  id: serial("id").primaryKey(),
+  userId: text("userId").notNull(),
+  type: text("type").notNull(), // bet_placed, bet_won, bet_lost, goal_scored, badge_earned, streak
+  message: text("message").notNull(),
+  matchId: integer("matchId"),
+  betId: integer("betId"),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+})
+
+export const betReaction = pgTable(
+  "bet_reaction",
+  {
+    id: serial("id").primaryKey(),
+    betId: integer("betId").notNull(),
+    userId: text("userId").notNull(),
+    emoji: text("emoji").notNull(), // 🔥, 😂, 💀, etc.
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+  },
+  (table) => [
+    unique("bet_reaction_unique").on(table.betId, table.userId, table.emoji),
+  ]
+)
+
+export const chatMessage = pgTable("chat_message", {
+  id: serial("id").primaryKey(),
+  matchId: integer("matchId").notNull(),
+  userId: text("userId").notNull(),
+  message: text("message").notNull(),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+})
+
+// --- Gamification tables ---------------------------------------------------
+
+export const badge = pgTable(
+  "badge",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("userId").notNull(),
+    badgeType: text("badgeType").notNull(), // prophet, flop, all_in, hot_streak, early_bird, group_master, perfect_score
+    earnedAt: timestamp("earnedAt").notNull().defaultNow(),
+  },
+  (table) => [
+    unique("badge_unique").on(table.userId, table.badgeType),
+  ]
+)
+
+export const tournamentPrediction = pgTable("tournament_prediction", {
+  id: serial("id").primaryKey(),
+  userId: text("userId").notNull(),
+  predictedTeam: text("predictedTeam").notNull(),
+  isCorrect: boolean("isCorrect"),
+  bonusAwarded: integer("bonusAwarded").notNull().default(0),
+  createdAt: timestamp("createdAt").notNull().defaultNow(),
+})
+
+// --- Push notifications ----------------------------------------------------
+
+export const pushSubscription = pgTable(
+  "push_subscription",
+  {
+    id: serial("id").primaryKey(),
+    userId: text("userId").notNull(),
+    endpoint: text("endpoint").notNull(),
+    p256dh: text("p256dh").notNull(),
+    auth: text("auth").notNull(),
+    createdAt: timestamp("createdAt").notNull().defaultNow(),
+  },
+  (table) => [
+    unique("push_sub_unique").on(table.userId, table.endpoint),
+  ]
+)

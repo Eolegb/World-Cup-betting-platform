@@ -32,7 +32,7 @@ export async function AppShell({
   profile: p,
   children,
 }: {
-  profile: { displayName: string; balance: number; isAdmin: boolean }
+  profile: { displayName: string; balance: number; isAdmin: boolean; streak?: number; bestStreak?: number; avatarColor?: string; jokerUsedAt?: Date | null }
   children: React.ReactNode
 }) {
   return (

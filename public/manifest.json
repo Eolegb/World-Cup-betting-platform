@@ -1,0 +1,14 @@
+{
+  "name": "Prono CDM 2026",
+  "short_name": "Prono CDM",
+  "description": "Plateforme de paris conviviale entre amis pour la Coupe du Monde 2026",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#13241c",
+  "theme_color": "#13241c",
+  "orientation": "portrait-primary",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

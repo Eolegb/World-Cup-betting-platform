@@ -20,6 +20,7 @@ export const metadata: Metadata = {
   description:
     "Plateforme de paris conviviale entre amis pour la Coupe du Monde 2026 : pronostics live, points et classement.",
   generator: "v0.app",
+  manifest: "/manifest.json",
 }
 
 export const viewport = {

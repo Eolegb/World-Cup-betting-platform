@@ -1,5 +1,5 @@
 import { db } from "@/lib/db"
-import { bet, ledger, match, matchEvent, profile, user } from "@/lib/db/schema"
+import { bet, ledger, match, matchEvent, profile, user, activityFeed, badge, tournamentPrediction } from "@/lib/db/schema"
 import { buildMarkets, type MatchLike, type OddsInputs } from "@/lib/match-markets"
 import { matchRoster } from "@/lib/teams"
 import { and, desc, eq, inArray } from "drizzle-orm"
@@ -59,11 +59,25 @@ export type LeaderRow = {
   won: number
   lost: number
   netProfit: number
+  streak: number
+  image: string | null
+  avatarColor: string
+  badges: string[]
 }
 
 export async function getLeaderboard(): Promise<LeaderRow[]> {
   const profiles = await db.select().from(profile)
   const allBets = await db.select().from(bet)
+  const users = await db.select({ id: user.id, image: user.image }).from(user)
+  const allBadges = await db.select().from(badge)
+
+  const userImageMap = new Map(users.map((u) => [u.id, u.image]))
+  const badgeMap = new Map<string, string[]>()
+  for (const b of allBadges) {
+    const arr = badgeMap.get(b.userId) ?? []
+    arr.push(b.badgeType)
+    badgeMap.set(b.userId, arr)
+  }
 
   const stats = new Map<string, { pending: number; won: number; lost: number }>()
   for (const b of allBets) {
@@ -86,6 +100,10 @@ export async function getLeaderboard(): Promise<LeaderRow[]> {
         won: s.won,
         lost: s.lost,
         netProfit: p.balance - 1000,
+        streak: p.streak,
+        image: userImageMap.get(p.userId) ?? null,
+        avatarColor: p.avatarColor,
+        badges: badgeMap.get(p.userId) ?? [],
       }
     })
     .sort((a, b) => b.balance - a.balance)
@@ -99,4 +117,149 @@ export async function getLedger(userId: string) {
 export async function getUserCount() {
   const rows = await db.select({ id: user.id }).from(user)
   return rows.length
+}
+
+// --- Activity feed ---
+
+export async function getActivityFeed() {
+  return db
+    .select({
+      id: activityFeed.id,
+      userId: activityFeed.userId,
+      type: activityFeed.type,
+      message: activityFeed.message,
+      matchId: activityFeed.matchId,
+      betId: activityFeed.betId,
+      metadata: activityFeed.metadata,
+      createdAt: activityFeed.createdAt,
+      displayName: profile.displayName,
+    })
+    .from(activityFeed)
+    .innerJoin(profile, eq(activityFeed.userId, profile.userId))
+    .orderBy(desc(activityFeed.createdAt))
+    .limit(30)
+}
+
+// --- Badges ---
+
+export async function getUserBadges(userId: string) {
+  return db.select().from(badge).where(eq(badge.userId, userId)).orderBy(desc(badge.earnedAt))
+}
+
+export async function getAllBadges() {
+  return db
+    .select({
+      id: badge.id,
+      userId: badge.userId,
+      badgeType: badge.badgeType,
+      earnedAt: badge.earnedAt,
+      displayName: profile.displayName,
+    })
+    .from(badge)
+    .innerJoin(profile, eq(badge.userId, profile.userId))
+    .orderBy(desc(badge.earnedAt))
+}
+
+// --- Tournament predictions ---
+
+export async function getTournamentPredictions() {
+  return db
+    .select({
+      id: tournamentPrediction.id,
+      userId: tournamentPrediction.userId,
+      predictedTeam: tournamentPrediction.predictedTeam,
+      isCorrect: tournamentPrediction.isCorrect,
+      bonusAwarded: tournamentPrediction.bonusAwarded,
+      createdAt: tournamentPrediction.createdAt,
+      displayName: profile.displayName,
+    })
+    .from(tournamentPrediction)
+    .innerJoin(profile, eq(tournamentPrediction.userId, profile.userId))
+    .orderBy(desc(tournamentPrediction.createdAt))
+}
+
+// --- Match bets with user names ---
+
+export async function getMatchBets(matchId: number) {
+  return db
+    .select({
+      id: bet.id,
+      userId: bet.userId,
+      matchId: bet.matchId,
+      marketType: bet.marketType,
+      label: bet.label,
+      selection: bet.selection,
+      minuteFrom: bet.minuteFrom,
+      minuteTo: bet.minuteTo,
+      stake: bet.stake,
+      odds: bet.odds,
+      potentialPayout: bet.potentialPayout,
+      status: bet.status,
+      payout: bet.payout,
+      isJoker: bet.isJoker,
+      bonusPoints: bet.bonusPoints,
+      settledAt: bet.settledAt,
+      createdAt: bet.createdAt,
+      displayName: profile.displayName,
+    })
+    .from(bet)
+    .innerJoin(profile, eq(bet.userId, profile.userId))
+    .where(eq(bet.matchId, matchId))
+    .orderBy(desc(bet.createdAt))
+}
+
+// --- User bet statistics ---
+
+export type BetStats = {
+  totalBets: number
+  won: number
+  lost: number
+  pending: number
+  voidCount: number
+  successRate: number
+  totalStaked: number
+  totalWon: number
+  totalLost: number
+  netResult: number
+}
+
+export async function getUserBetStats(userId: string): Promise<BetStats> {
+  const bets = await db.select().from(bet).where(eq(bet.userId, userId))
+
+  const won = bets.filter((b) => b.status === "won")
+  const lost = bets.filter((b) => b.status === "lost")
+  const pending = bets.filter((b) => b.status === "pending")
+  const voided = bets.filter((b) => b.status === "void")
+  const finished = won.length + lost.length
+
+  const totalStaked = bets.reduce((s, b) => s + b.stake, 0)
+  const totalWon = won.reduce((s, b) => s + b.payout, 0)
+  const totalLost = lost.reduce((s, b) => s + b.stake, 0)
+
+  return {
+    totalBets: bets.length,
+    won: won.length,
+    lost: lost.length,
+    pending: pending.length,
+    voidCount: voided.length,
+    successRate: finished > 0 ? won.length / finished : 0,
+    totalStaked,
+    totalWon,
+    totalLost,
+    netResult: totalWon - totalLost,
+  }
+}
+
+// --- Streak leaderboard ---
+
+export async function getStreakLeaderboard() {
+  return db
+    .select({
+      userId: profile.userId,
+      displayName: profile.displayName,
+      streak: profile.streak,
+      bestStreak: profile.bestStreak,
+    })
+    .from(profile)
+    .orderBy(desc(profile.streak))
 }
