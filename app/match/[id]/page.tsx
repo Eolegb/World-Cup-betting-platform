@@ -58,7 +58,7 @@ export default async function MatchDetailPage({
           <div className="mb-3 flex items-center justify-between">
             <span className="text-xs text-muted-foreground">{m.stage ?? "Coupe du Monde 2026"}</span>
             <div className="flex items-center gap-2">
-              {isLive ? <LiveBadge elapsed={m.elapsed} /> : <StatusPill status={m.status} />}
+              {isLive ? <LiveBadge elapsed={m.elapsed} kickoff={m.kickoff.toISOString()} /> : <StatusPill status={m.status} />}
             </div>
           </div>
 
@@ -75,9 +75,9 @@ export default async function MatchDetailPage({
               </div>
             </div>
             {isLive ? (
-              <LiveScore homeScore={m.homeScore} awayScore={m.awayScore} elapsed={m.elapsed} isLive={true} />
+              <LiveScore homeScore={m.homeScore} awayScore={m.awayScore} kickoff={m.kickoff.toISOString()} isLive={true} />
             ) : isFinished ? (
-              <LiveScore homeScore={m.homeScore} awayScore={m.awayScore} elapsed={null} isLive={false} />
+              <LiveScore homeScore={m.homeScore} awayScore={m.awayScore} kickoff={m.kickoff.toISOString()} isLive={false} />
             ) : (
               <div className="flex flex-col items-center gap-1">
                 <span className="font-heading text-2xl tabular text-muted-foreground">VS</span>
@@ -96,9 +96,9 @@ export default async function MatchDetailPage({
             </div>
 
             {isLive ? (
-              <LiveScore homeScore={m.homeScore} awayScore={m.awayScore} elapsed={m.elapsed} isLive={true} />
+              <LiveScore homeScore={m.homeScore} awayScore={m.awayScore} kickoff={m.kickoff.toISOString()} isLive={true} />
             ) : isFinished ? (
-              <LiveScore homeScore={m.homeScore} awayScore={m.awayScore} elapsed={null} isLive={false} />
+              <LiveScore homeScore={m.homeScore} awayScore={m.awayScore} kickoff={m.kickoff.toISOString()} isLive={false} />
             ) : (
               <div className="flex flex-col items-center gap-1">
                 <span className="font-heading text-2xl tabular text-muted-foreground">VS</span>

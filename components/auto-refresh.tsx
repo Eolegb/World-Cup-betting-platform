@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation"
  * Periodically refreshes server components and syncs live scores.
  * Calls /api/sync/live to update match status/scores, then refreshes the page.
  */
-export function AutoRefresh({ seconds = 30 }: { seconds?: number }) {
+export function AutoRefresh({ seconds = 60 }: { seconds?: number }) {
   const router = useRouter()
   useEffect(() => {
     async function tick() {

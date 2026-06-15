@@ -8,6 +8,7 @@ import { teamColors } from "@/lib/team-colors"
 import { statusLabel } from "@/lib/format"
 import { Clock, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { LiveBadge } from "@/components/match-bits"
 
 function kickoffLabel(d: Date) {
   return new Intl.DateTimeFormat("fr-FR", {
@@ -51,15 +52,6 @@ function Countdown({ kickoff }: { kickoff: Date }) {
   )
 }
 
-function LiveDot() {
-  return (
-    <span className="relative flex h-2 w-2">
-      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-live opacity-75" />
-      <span className="relative inline-flex h-2 w-2 rounded-full bg-live" />
-    </span>
-  )
-}
-
 function ScoreBlock({ home, away }: { home: number; away: number }) {
   return (
     <div className="flex items-center gap-2 rounded-lg bg-secondary/60 px-3 py-1.5 font-heading tabular">
@@ -89,10 +81,7 @@ export default function MatchCard({ match: m }: { match: MatchRow }) {
         <div className="mb-3 flex items-center justify-between">
           <span className="text-xs text-muted-foreground">{m.stage ?? "Coupe du Monde 2026"}</span>
           {isLive ? (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-live/15 px-2 py-0.5 text-xs font-semibold text-live">
-              <LiveDot />
-              {m.elapsed != null ? `${m.elapsed}'` : "LIVE"}
-            </span>
+            <LiveBadge kickoff={new Date(m.kickoff).toISOString()} />
           ) : (
             <span
               className={cn(

@@ -1,13 +1,26 @@
-import { cn } from "@/lib/utils"
+"use client"
 
-export function LiveBadge({ elapsed }: { elapsed?: number | null }) {
+import { cn } from "@/lib/utils"
+import { useMatchTimer } from "@/components/match-timer"
+
+export function LiveBadge({ elapsed: dbElapsed, kickoff }: { elapsed?: number | null; kickoff?: string }) {
+  const { elapsed: liveElapsed, isHalftime } = useMatchTimer(kickoff ?? "", !!kickoff)
+
+  const display = liveElapsed ?? dbElapsed
+
   return (
-    <span className="inline-flex items-center gap-1.5 rounded-full bg-live/15 px-2 py-0.5 text-xs font-semibold text-live">
+    <span className={cn(
+      "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold",
+      isHalftime ? "bg-orange-500/15 text-orange-400" : "bg-live/15 text-live"
+    )}>
       <span className="relative flex h-2 w-2">
-        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-live opacity-75" />
-        <span className="relative inline-flex h-2 w-2 rounded-full bg-live" />
+        <span className={cn(
+          "absolute inline-flex h-full w-full rounded-full opacity-75",
+          isHalftime ? "animate-none bg-orange-400" : "animate-ping bg-live"
+        )} />
+        <span className={cn("relative inline-flex h-2 w-2 rounded-full", isHalftime ? "bg-orange-400" : "bg-live")} />
       </span>
-      {elapsed != null ? `${elapsed}'` : "LIVE"}
+      {isHalftime ? "Mi-temps" : display != null ? `${display}'` : "LIVE"}
     </span>
   )
 }
