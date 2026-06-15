@@ -1,9 +1,3 @@
 {
-  "installCommand": "pnpm install --frozen-lockfile",
-  "crons": [
-    {
-      "path": "/api/sync?secret=sync-secret-change-me",
-      "schedule": "*/5 * * * *"
-    }
-  ]
+  "installCommand": "pnpm install --frozen-lockfile"
 }
