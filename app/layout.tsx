@@ -16,7 +16,7 @@ const archivo = Archivo({
 })
 
 export const metadata: Metadata = {
-  title: "Prono CDM 2026 — Paris entre amis",
+  title: "BetRod — Coupe du Monde 2026",
   description:
     "Plateforme de paris conviviale entre amis pour la Coupe du Monde 2026 : pronostics live, points et classement.",
   generator: "v0.app",

@@ -8,7 +8,6 @@ import { authClient } from "@/lib/auth-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Trophy } from "lucide-react"
 
 export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
   const router = useRouter()
@@ -44,12 +43,12 @@ export function AuthForm({ mode }: { mode: "sign-in" | "sign-up" }) {
     <main className="min-h-svh bg-background flex flex-col items-center justify-center px-4 py-10">
       <div className="w-full max-w-sm">
         <div className="flex items-center gap-2 mb-8 justify-center">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Trophy className="h-5 w-5" />
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/30">
+            <span className="font-heading text-xl font-black tracking-tight">B</span>
           </span>
           <div className="leading-tight">
-            <p className="font-heading text-lg text-foreground">Prono CDM 2026</p>
-            <p className="text-xs text-muted-foreground">Paris entre amis</p>
+            <p className="font-heading text-xl text-foreground">BetRod</p>
+            <p className="text-xs text-muted-foreground">Coupe du Monde 2026</p>
           </div>
         </div>
 

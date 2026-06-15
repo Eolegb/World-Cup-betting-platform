@@ -29,11 +29,9 @@ export function AppNav({ displayName, balance, isAdmin }: NavProps) {
     <header className="sticky top-0 z-40 border-b border-border bg-background/90 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4">
         <Link href="/" className="flex items-center gap-2 shrink-0">
-          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-            <Trophy className="h-5 w-5" />
-          </span>
+          <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground font-heading text-lg font-black">B</span>
           <span className="font-heading text-base leading-none hidden sm:block">
-            Prono <span className="text-primary">CDM</span>
+            Bet<span className="text-primary">Rod</span>
           </span>
         </Link>
 
