@@ -5,6 +5,7 @@ import { user as userTable, profile } from "@/lib/db/schema"
 import { Database, RefreshCw, FlaskConical, Users } from "lucide-react"
 import { redirect } from "next/navigation"
 import { AdminActions } from "./actions"
+import { ResetBalancesButton } from "@/components/reset-balances-button"
 import { eq } from "drizzle-orm"
 
 export const dynamic = "force-dynamic"
@@ -95,13 +96,7 @@ export default async function AdminPage() {
           Outils
         </h2>
         <div className="flex flex-wrap gap-3">
-          <a
-            href="/api/admin/reset-balances"
-            className="inline-flex items-center gap-2 rounded-lg border border-border px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:border-destructive/40 hover:text-destructive"
-            onClick={async (e) => { e.preventDefault(); if (confirm("Restaurer toutes les cagnottes à leur dernière valeur sauvegardée ?")) { const res = await fetch("/api/admin/reset-balances"); const data = await res.json(); alert(data.ok ? `${data.restored} cagnottes restaurées.` : "Erreur"); window.location.reload(); } }}
-          >
-            🔄 Restaurer les cagnottes
-          </a>
+          <ResetBalancesButton />
         </div>
       </div>
 
