@@ -9,6 +9,7 @@ import { statusLabel } from "@/lib/format"
 import { Clock, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { LiveBadge } from "@/components/match-bits"
+import { OddsDisplay } from "@/components/odds-display"
 
 function kickoffLabel(d: Date) {
   return new Intl.DateTimeFormat("fr-FR", {
@@ -110,6 +111,12 @@ export default function MatchCard({ match: m }: { match: MatchRow }) {
             <span className="truncate font-medium text-card-foreground">{m.awayTeam}</span>
           </div>
         </div>
+
+        {m.status === "scheduled" && (
+          <div className="mt-3 border-t border-border/30 pt-3">
+            <OddsDisplay matchId={m.id} />
+          </div>
+        )}
 
         <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
           {m.status === "finished" ? (

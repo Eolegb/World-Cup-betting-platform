@@ -1,3 +1,13 @@
 {
-  "installCommand": "pnpm install --frozen-lockfile"
+  "installCommand": "pnpm install --frozen-lockfile",
+  "crons": [
+    {
+      "path": "/api/cron/update-odds?secret=cron-secret-change-me",
+      "schedule": "0 2 * * *"
+    },
+    {
+      "path": "/api/cron/update-odds-live?secret=cron-secret-change-me",
+      "schedule": "0 8,12,16,20 * * *"
+    }
+  ]
 }
