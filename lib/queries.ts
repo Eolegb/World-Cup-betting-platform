@@ -66,7 +66,7 @@ export type LeaderRow = {
 }
 
 export async function getLeaderboard(): Promise<LeaderRow[]> {
-  const profiles = await db.select().from(profile)
+  const profiles = await db.select().from(profile).where(eq(profile.isAdmin, false))
   const allBets = await db.select().from(bet)
   const users = await db.select({ id: user.id, image: user.image }).from(user)
   const allBadges = await db.select().from(badge)
@@ -136,6 +136,7 @@ export async function getActivityFeed() {
     })
     .from(activityFeed)
     .innerJoin(profile, eq(activityFeed.userId, profile.userId))
+    .where(eq(profile.isAdmin, false))
     .orderBy(desc(activityFeed.createdAt))
     .limit(30)
 }
@@ -157,6 +158,7 @@ export async function getAllBadges() {
     })
     .from(badge)
     .innerJoin(profile, eq(badge.userId, profile.userId))
+    .where(eq(profile.isAdmin, false))
     .orderBy(desc(badge.earnedAt))
 }
 
@@ -175,6 +177,7 @@ export async function getTournamentPredictions() {
     })
     .from(tournamentPrediction)
     .innerJoin(profile, eq(tournamentPrediction.userId, profile.userId))
+    .where(eq(profile.isAdmin, false))
     .orderBy(desc(tournamentPrediction.createdAt))
 }
 
@@ -204,7 +207,7 @@ export async function getMatchBets(matchId: number) {
     })
     .from(bet)
     .innerJoin(profile, eq(bet.userId, profile.userId))
-    .where(eq(bet.matchId, matchId))
+    .where(and(eq(bet.matchId, matchId), eq(profile.isAdmin, false)))
     .orderBy(desc(bet.createdAt))
 }
 
@@ -261,5 +264,6 @@ export async function getStreakLeaderboard() {
       bestStreak: profile.bestStreak,
     })
     .from(profile)
+    .where(eq(profile.isAdmin, false))
     .orderBy(desc(profile.streak))
 }
