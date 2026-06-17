@@ -97,7 +97,8 @@ async function syncFixtures(fixtures: FootballDataMatch[]) {
     if (!home || !away) continue // Skip TBD matches (knockout not yet determined)
 
     const extId = f.id
-    const kickoff = f.utcDate // Store as UTC ISO string directly
+    const kickoffStr = f.utcDate // UTC ISO string from API
+    const kickoff = new Date(kickoffStr)
     const stage = f.group ?? f.stage ?? null
     const venue = f.venue ?? null
     const status = mapStatus(f.status)
@@ -139,8 +140,8 @@ async function syncLiveFixtures(fixtures: FootballDataMatch[]) {
   for (const f of fixtures) {
     const extId = f.id
     const status = mapStatus(f.status)
-    const kickoff = f.utcDate
-    const elapsed = calculateElapsed(new Date(kickoff))
+    const kickoff = new Date(f.utcDate)
+    const elapsed = calculateElapsed(kickoff)
     const homeScore = f.score.fullTime.home ?? 0
     const awayScore = f.score.fullTime.away ?? 0
 
