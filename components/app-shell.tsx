@@ -40,6 +40,8 @@ function fireBgSync() {
   lastBgSync = now
   bgSyncRunning = true
   runSync().finally(() => { bgSyncRunning = false })
+  // Also trigger push notifications in background
+  fetch("/api/push/send").catch(() => {})
 }
 
 export async function AppShell({

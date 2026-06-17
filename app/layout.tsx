@@ -2,6 +2,7 @@ import { Analytics } from "@vercel/analytics/next"
 import type { Metadata } from "next"
 import { Geist, Geist_Mono, Archivo } from "next/font/google"
 import { Toaster } from "@/components/ui/sonner"
+import { ServiceWorkerRegister } from "@/components/service-worker-register"
 import "./globals.css"
 
 const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] })
@@ -40,6 +41,7 @@ export default function RootLayout({
     <html lang="fr" className={`${geistSans.variable} ${geistMono.variable} ${archivo.variable} bg-background`}>
       <body className="font-sans antialiased">
         {children}
+        <ServiceWorkerRegister />
         <Toaster position="top-center" />
         {process.env.NODE_ENV === "production" && <Analytics />}
       </body>

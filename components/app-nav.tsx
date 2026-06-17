@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { formatMoney } from "@/lib/format"
 import { SignOutButton } from "@/components/sign-out-button"
 import { AvatarUpload } from "@/components/avatar-upload"
+import { PushNotificationToggle } from "@/components/push-toggle"
 import { useScrollHide } from "@/lib/use-scroll-hide"
 import { Trophy, Home, Ticket, Crown, ShieldCheck, Coins } from "lucide-react"
 
@@ -72,6 +73,7 @@ export function AppNav({ displayName, balance, isAdmin, image }: NavProps) {
           <span className="hidden sm:block text-sm text-muted-foreground max-w-[10rem] truncate" title={displayName}>
             {displayName}
           </span>
+          <PushNotificationToggle />
           <SignOutButton />
         </div>
       </div>
