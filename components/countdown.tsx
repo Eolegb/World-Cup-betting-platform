@@ -1,13 +1,15 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { utcDate } from "@/lib/datetime"
 
-export function Countdown({ kickoff }: { kickoff: string }) {
+export function Countdown({ kickoff }: { kickoff: string | Date }) {
   const [label, setLabel] = useState("")
 
   useEffect(() => {
     function tick() {
-      const diff = new Date(kickoff).getTime() - Date.now()
+      const target = utcDate(kickoff).getTime()
+      const diff = target - Date.now()
       if (diff <= 0) { setLabel("C'est parti !"); return }
       const days = Math.floor(diff / 86400000)
       const hours = Math.floor((diff % 86400000) / 3600000)

@@ -6,22 +6,13 @@ import type { MatchRow } from "@/lib/queries"
 import { flagForTeam } from "@/lib/flags"
 import { teamColors } from "@/lib/team-colors"
 import { statusLabel } from "@/lib/format"
+import { kickoffLabelShort, utcDate } from "@/lib/datetime"
 import { Clock, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { LiveBadge } from "@/components/match-bits"
 import { OddsDisplay } from "@/components/odds-display"
 
-function kickoffLabel(d: Date) {
-  return new Intl.DateTimeFormat("fr-FR", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(d)
-}
-
-function Countdown({ kickoff }: { kickoff: Date }) {
+function MatchCountdown({ kickoff }: { kickoff: Date | string }) {
   const [now, setNow] = useState(() => Date.now())
 
   useEffect(() => {
@@ -29,25 +20,17 @@ function Countdown({ kickoff }: { kickoff: Date }) {
     return () => clearInterval(id)
   }, [])
 
-  const diff = kickoff.getTime() - now
+  const target = utcDate(kickoff).getTime()
+  const diff = target - now
   if (diff <= 0) return <span className="text-xs text-muted-foreground">Coup d&apos;envoi imminent</span>
 
-  const totalSeconds = Math.floor(diff / 1000)
-  const days = Math.floor(totalSeconds / 86400)
-  const hours = Math.floor((totalSeconds % 86400) / 3600)
-  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const days = Math.floor(diff / 86400000)
+  const hours = Math.floor((diff % 86400000) / 3600000)
+  const minutes = Math.floor((diff % 3600000) / 60000)
 
-  return (
-    <span className="flex items-center gap-1.5 text-xs font-medium tabular text-muted-foreground">
-      <Clock className="h-3.5 w-3.5" />
-      {days > 0 && (
-        <>
-          <span>{days}j</span>
-          <span className="text-border">·</span>
-        </>
-      )}
-      <span>
-        {String(hours).padStart(2, "0")}h{String(minutes).padStart(2, "0")}m
+  if (days > 0) return <span className="text-xs tabular text-muted-foreground">{days}j {hours}h {minutes}min</span>
+  return <span className="flex items-center gap-1.5 text-xs font-medium tabular text-muted-foreground"><Clock className="h-3.5 w-3.5" />{String(hours).padStart(2, "0")}h{String(minutes).padStart(2, "0")}m</span>
+}
       </span>
     </span>
   )
@@ -122,9 +105,9 @@ export default function MatchCard({ match: m }: { match: MatchRow }) {
           {m.status === "finished" ? (
             <span className="text-xs text-muted-foreground">Résultat final</span>
           ) : m.status === "scheduled" ? (
-            <Countdown kickoff={new Date(m.kickoff)} />
+            <MatchCountdown kickoff={m.kickoff} />
           ) : (
-            <span className="text-xs text-muted-foreground">{kickoffLabel(new Date(m.kickoff))}</span>
+            <span className="text-xs text-muted-foreground">{kickoffLabelShort(m.kickoff)}</span>
           )}
           <span className="flex items-center gap-1 text-xs font-medium text-primary">
             {m.status === "finished" ? "Voir les paris" : "Parier"}
