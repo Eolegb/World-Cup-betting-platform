@@ -31,10 +31,6 @@ function MatchCountdown({ kickoff }: { kickoff: Date | string }) {
   if (days > 0) return <span className="text-xs tabular text-muted-foreground">{days}j {hours}h {minutes}min</span>
   return <span className="flex items-center gap-1.5 text-xs font-medium tabular text-muted-foreground"><Clock className="h-3.5 w-3.5" />{String(hours).padStart(2, "0")}h{String(minutes).padStart(2, "0")}m</span>
 }
-      </span>
-    </span>
-  )
-}
 
 function ScoreBlock({ home, away }: { home: number; away: number }) {
   return (
