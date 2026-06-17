@@ -36,7 +36,7 @@ let bgSyncRunning = false
 let lastBgSync = 0
 function fireBgSync() {
   const now = Date.now()
-  if (bgSyncRunning || now - lastBgSync < 3 * 60 * 1000) return
+  if (bgSyncRunning || now - lastBgSync < 2 * 60 * 60 * 1000) return // every 2 hours
   lastBgSync = now
   bgSyncRunning = true
   runSync().finally(() => { bgSyncRunning = false })
