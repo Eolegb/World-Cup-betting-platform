@@ -9,8 +9,8 @@ export const dynamic = "force-dynamic"
 
 export async function GET() {
   try {
-    // Find scheduled matches that should be finished (kickoff > 105 min ago)
-    const cutoff = new Date(Date.now() - 105 * 60 * 1000)
+    // Find scheduled matches that should be finished (kickoff + 95 min ago)
+    const cutoff = new Date(Date.now() - 95 * 60 * 1000)
     const candidates = await db.select().from(match).where(and(eq(match.status, "scheduled"), lt(match.kickoff, cutoff)))
 
     let updated = 0
@@ -21,7 +21,13 @@ export async function GET() {
       if (!m.externalId) continue
 
       const detail = await fetchMatchDetail(m.externalId)
-      if (!detail || detail.status !== "FINISHED") continue
+      if (!detail) continue
+
+      // Consider finished if API says FINISHED, OR if score exists and 95+ min passed
+      const isFinished = detail.status === "FINISHED" ||
+        (detail.score.fullTime.home != null && detail.score.fullTime.away != null)
+
+      if (!isFinished) continue
 
       const homeScore = detail.score.fullTime.home ?? 0
       const awayScore = detail.score.fullTime.away ?? 0
