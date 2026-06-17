@@ -20,20 +20,27 @@ export function PushNotificationToggle() {
   const [supported, setSupported] = useState(false)
   const [subscribed, setSubscribed] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [permission, setPermission] = useState<NotificationPermission | "">("")
 
   useEffect(() => {
-    if ("serviceWorker" in navigator && "PushManager" in window) {
-      setSupported(true)
-      navigator.serviceWorker.ready.then((reg) => {
-        reg.pushManager.getSubscription().then((sub) => setSubscribed(!!sub))
-      })
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return
+    setSupported(true)
+    if ("Notification" in window) {
+      setPermission(Notification.permission)
     }
+    // Check existing subscription
+    navigator.serviceWorker.ready.then((reg) => {
+      reg.pushManager.getSubscription().then((sub) => setSubscribed(!!sub))
+    }).catch(() => {
+      // SW not ready yet, will retry on click
+    })
   }, [])
 
   async function toggle() {
     setLoading(true)
     try {
       if (subscribed) {
+        // Unsubscribe
         const reg = await navigator.serviceWorker.ready
         const sub = await reg.pushManager.getSubscription()
         if (sub) {
@@ -41,8 +48,27 @@ export function PushNotificationToggle() {
           await unsubscribeFromPush(sub.endpoint)
         }
         setSubscribed(false)
+        setPermission(Notification.permission)
         toast.success("Notifications désactivées")
       } else {
+        // Request permission first
+        if (!("Notification" in window)) {
+          toast.error("Ton navigateur ne supporte pas les notifications.")
+          setLoading(false)
+          return
+        }
+
+        if (Notification.permission !== "granted") {
+          const result = await Notification.requestPermission()
+          setPermission(result)
+          if (result !== "granted") {
+            toast.error("Tu as refusé les notifications. Change ça dans les réglages du navigateur.")
+            setLoading(false)
+            return
+          }
+        }
+
+        // Now subscribe to push
         const reg = await navigator.serviceWorker.ready
         const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
@@ -51,10 +77,11 @@ export function PushNotificationToggle() {
         const json = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } }
         await subscribeToPush(json)
         setSubscribed(true)
-        toast.success("Notifications activées ! Tu seras prévenu 30 min avant chaque match.")
+        toast.success("Notifs activées ! Tu seras prévenu avant les matchs.")
       }
     } catch (e) {
-      toast.error("Impossible d'activer les notifications. Ajoute le site à l'écran d'accueil d'abord.")
+      console.error("[Push] Error:", e)
+      toast.error("Impossible d'activer les notifications. Vérifie que le site est bien en HTTPS et réessaie.")
     }
     setLoading(false)
   }
