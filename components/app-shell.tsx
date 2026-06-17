@@ -41,10 +41,6 @@ function fireBgSync() {
   bgSyncRunning = true
   runSync().finally(() => { bgSyncRunning = false })
 }
-  }
-
-  return { user: session.user, profile: { ...p, image: session.user.image ?? null } }
-}
 
 export async function AppShell({
   profile: p,
