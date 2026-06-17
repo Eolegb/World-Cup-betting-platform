@@ -5,6 +5,7 @@ import { db } from "@/lib/db"
 import { profile } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { AppNav } from "@/components/app-nav"
+import { runSync } from "@/lib/sync"
 
 /**
  * Loads the current session + profile, redirecting to /sign-in if not authed.
@@ -23,6 +24,23 @@ export async function requireUser() {
       await db.update(profile).set({ isAdmin: true }).where(eq(profile.userId, session.user.id))
       p.isAdmin = true
     }
+  }
+
+  // Fire-and-forget background sync on first visit after 3+ min idle
+  fireBgSync()
+
+  return { user: session.user, profile: { ...p, image: session.user.image ?? null } }
+}
+
+let bgSyncRunning = false
+let lastBgSync = 0
+function fireBgSync() {
+  const now = Date.now()
+  if (bgSyncRunning || now - lastBgSync < 3 * 60 * 1000) return
+  lastBgSync = now
+  bgSyncRunning = true
+  runSync().finally(() => { bgSyncRunning = false })
+}
   }
 
   return { user: session.user, profile: { ...p, image: session.user.image ?? null } }
