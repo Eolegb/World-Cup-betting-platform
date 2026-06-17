@@ -21,9 +21,9 @@ export default async function DashboardPage() {
   const { user, profile } = await requireUser()
   const matches = await getMatches()
 
-  const live = matches.filter((m) => m.status === "live")
   const upcoming = matches.filter((m) => m.status === "scheduled")
   const finished = matches.filter((m) => m.status === "finished")
+  const inProgress = upcoming.filter((m) => new Date(m.kickoff).getTime() < Date.now())
   const greeting = getGreeting()
 
   // Next match countdown
@@ -67,8 +67,8 @@ export default async function DashboardPage() {
                     <p className="text-[10px] text-muted-foreground">Cagnotte</p>
                   </div>
                   <div className="rounded-2xl border border-border/40 bg-secondary/20 p-3 text-center">
-                    <span className="text-lg">{live.length}</span>
-                    <p className="text-[10px] text-muted-foreground">En direct</p>
+                    <span className="text-lg">{inProgress.length}</span>
+                    <p className="text-[10px] text-muted-foreground">En cours</p>
                   </div>
                   <div className="rounded-2xl border border-border/40 bg-secondary/20 p-3 text-center">
                     <span className="text-lg">{upcoming.length}</span>
@@ -98,9 +98,6 @@ export default async function DashboardPage() {
             </div>
           ) : (
             <div className="flex flex-col gap-8">
-              {live.length > 0 && (
-                <MatchSection title="En direct" icon={<Radio className="h-4 w-4 text-live" />} matches={live} />
-              )}
               {upcoming.length > 0 && (
                 <MatchSection
                   title="À venir"

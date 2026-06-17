@@ -75,14 +75,10 @@ export async function runSync(): Promise<{ ok: boolean; results?: string[]; erro
 
 function mapStatus(fdStatus: string): string {
   switch (fdStatus) {
-    case "LIVE":
-    case "IN_PLAY":
-    case "PAUSED":
-      return "live"
     case "FINISHED":
       return "finished"
     default:
-      return "scheduled"
+      return "scheduled" // LIVE, IN_PLAY, PAUSED, TIMED, SCHEDULED → all "scheduled"
   }
 }
 

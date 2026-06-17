@@ -25,14 +25,25 @@ export function LiveBadge({ elapsed: dbElapsed, kickoff }: { elapsed?: number | 
   )
 }
 
-export function StatusPill({ status, className }: { status: string; className?: string }) {
+export function StatusPill({ status, className, hasStarted }: { status: string; className?: string; hasStarted?: boolean }) {
   const map: Record<string, string> = {
     finished: "bg-muted text-muted-foreground",
     scheduled: "bg-secondary text-secondary-foreground",
   }
-  const label = status === "finished" ? "Terminé" : "À venir"
+  let label: string
+  let color: string
+  if (status === "finished") {
+    label = "Terminé"
+    color = map.finished
+  } else if (hasStarted) {
+    label = "En cours"
+    color = "bg-live/15 text-live"
+  } else {
+    label = "À venir"
+    color = map.scheduled
+  }
   return (
-    <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", map[status] ?? map.scheduled, className)}>
+    <span className={cn("rounded-full px-2 py-0.5 text-xs font-medium", color, className)}>
       {label}
     </span>
   )
