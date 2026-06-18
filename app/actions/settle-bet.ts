@@ -3,7 +3,7 @@
 import { db } from "@/lib/db"
 import { match, bet, profile, ledger, matchEvent } from "@/lib/db/schema"
 import { requireAdmin } from "@/lib/session"
-import { fetchMatchDetail } from "@/lib/providers"
+import { fetchFixtures } from "@/lib/providers"
 import { resolveBet, type GoalEvent, type ResolvableMatch } from "@/lib/resolve"
 import { eq, and, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
@@ -18,42 +18,35 @@ export async function settleSingleBet(betId: number) {
   let [m] = await db.select().from(match).where(eq(match.id, b.matchId)).limit(1)
   if (!m) return { ok: false as const, error: "Match introuvable." }
 
-  // If match not finished in DB, check the API live
+  // If match not finished in DB, fetch ALL fixtures (1 API call total) to check
   if (m.status !== "finished" && m.externalId) {
     try {
-      const detail = await fetchMatchDetail(m.externalId, true)
-      if (!detail) {
-        return { ok: false as const, error: "API football-data.org inaccessible (limite 10 req/min peut-être atteinte). Réessaie dans 1 minute." }
+      const fixtures = await fetchFixtures(true) // force refresh — 1 API call for all 104 matches
+      const fixture = fixtures.find(f => f.id === m.externalId)
+
+      if (!fixture) {
+        return { ok: false as const, error: "Match non trouvé dans l'API." }
       }
 
-      const isFinished = detail.status === "FINISHED" ||
-        (detail.score.fullTime.home != null && detail.score.fullTime.away != null)
+      const isFinished = fixture.status === "FINISHED" ||
+        (fixture.score.fullTime.home != null && fixture.score.fullTime.away != null)
 
       if (!isFinished) {
-        return { ok: false as const, error: "Le match n'est pas encore terminé (vérifié via l'API)." }
+        return { ok: false as const, error: "Le match n'est pas encore terminé." }
       }
 
       // Update match in DB
-      const homeScore = detail.score.fullTime.home ?? 0
-      const awayScore = detail.score.fullTime.away ?? 0
+      const homeScore = fixture.score.fullTime.home ?? 0
+      const awayScore = fixture.score.fullTime.away ?? 0
       await db.update(match)
         .set({ status: "finished", homeScore, awayScore, elapsed: 90, lastSyncedAt: new Date() })
         .where(eq(match.id, m.id))
 
-      // Store goals
-      if (detail.goals) {
-        for (const g of detail.goals) {
-          await db.insert(matchEvent)
-            .values({ matchId: m.id, type: "goal", detail: g.type ?? "REGULAR", player: g.scorer?.name ?? null, team: g.team?.name ?? "", minute: g.minute, extraMinute: g.extraTime })
-            .onConflictDoNothing()
-        }
-      }
-
       // Re-fetch updated match
       const [updated] = await db.select().from(match).where(eq(match.id, b.matchId)).limit(1)
       if (updated) m = updated
-    } catch (e) {
-      return { ok: false as const, error: "API football-data.org inaccessible (limite 10 req/min peut-être atteinte). Réessaie dans 1 minute." }
+    } catch {
+      return { ok: false as const, error: "API football-data.org inaccessible. Réessaie dans 1 minute." }
     }
   } else if (m.status !== "finished") {
     return { ok: false as const, error: "Le match n'est pas encore terminé." }
