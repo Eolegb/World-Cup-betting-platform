@@ -7,6 +7,7 @@ import { redirect } from "next/navigation"
 import { AdminActions } from "./actions"
 import { ResetBalancesButton } from "@/components/reset-balances-button"
 import { SettleBetButton } from "@/components/settle-bet-button"
+import { ManualScoreForm } from "@/components/manual-score-form"
 import { formatMoney, formatOdds, betStatusLabel } from "@/lib/format"
 import { eq } from "drizzle-orm"
 
@@ -222,11 +223,13 @@ export default async function AdminPage() {
                   <th className="h-10 px-4 text-left font-medium text-muted-foreground">Date</th>
                   <th className="h-10 px-4 text-center font-medium text-muted-foreground">Score</th>
                   <th className="h-10 px-4 text-center font-medium text-muted-foreground">Statut</th>
+                  <th className="h-10 px-2 text-center font-medium text-muted-foreground"></th>
                 </tr>
               </thead>
               <tbody>
-                {matches.map((m) => (
-                  <tr key={m.id} className="border-b border-border transition-colors hover:bg-muted/50">
+                {matches.flatMap((m) => {
+                  const mainRow = (
+                    <tr key={`match-${m.id}`} className="border-b border-border transition-colors hover:bg-muted/50">
                     <td className="p-4 tabular text-xs text-muted-foreground">#{m.id}</td>
                     <td className="p-4 text-card-foreground">
                       {m.homeTeam} vs {m.awayTeam}
@@ -255,8 +258,15 @@ export default async function AdminPage() {
                         {m.status === "live" ? "En direct" : m.status === "finished" ? "Terminé" : "À venir"}
                       </span>
                     </td>
+                    <td className="p-2 text-center">
+                      {m.status !== "finished" && (
+                        <ManualScoreForm matchId={m.id} homeTeam={m.homeTeam} awayTeam={m.awayTeam} />
+                      )}
+                    </td>
                   </tr>
-                ))}
+                  )
+                  return mainRow
+                })}
               </tbody>
             </table>
           </div>
