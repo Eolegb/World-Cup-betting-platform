@@ -22,11 +22,15 @@ export async function settleSingleBet(betId: number) {
   if (m.status !== "finished" && m.externalId) {
     try {
       const fixtures = await fetchFixtures(true)
-      const extId = Number(m.externalId)
-      const fixture = fixtures.find(f => f.id === extId)
+      if (!fixtures.length) {
+        return { ok: false as const, error: "API football-data.org injoignable. Vérifie ta connexion ou réessaie." }
+      }
+
+      const extId = String(m.externalId)
+      const fixture = fixtures.find(f => String(f.id) === extId)
 
       if (!fixture) {
-        return { ok: false as const, error: "Match non trouvé dans l'API." }
+        return { ok: false as const, error: `Match ${m.homeTeam} vs ${m.awayTeam} non trouvé dans l'API (ID: ${extId}). Lance une synchronisation complète.` }
       }
 
       const isFinished = fixture.status === "FINISHED" ||
