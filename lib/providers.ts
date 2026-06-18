@@ -140,15 +140,29 @@ export async function fetchMatchDetail(fixtureId: number, force = false): Promis
   }
   if (!hasFootballKey()) return null
 
-  const url = `${FOOTBALL_DATA_BASE}/matches/${fixtureId}`
-  const res = await fetch(url, { headers: footballDataHeaders(), cache: "no-store" })
-  if (!res.ok) {
-    console.error(`[football-data] Match detail ${fixtureId}: HTTP ${res.status}`)
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 8000) // 8s timeout
+
+    const url = `${FOOTBALL_DATA_BASE}/matches/${fixtureId}`
+    const res = await fetch(url, {
+      headers: footballDataHeaders(),
+      cache: "no-store",
+      signal: controller.signal,
+    })
+    clearTimeout(timeout)
+
+    if (!res.ok) {
+      console.error(`[football-data] Match ${fixtureId}: HTTP ${res.status} ${res.statusText}`)
+      return null
+    }
+    const json = await res.json()
+    setCached(key, json, 30 * 1000)
+    return json as FootballDataMatch
+  } catch (e) {
+    console.error(`[football-data] Match ${fixtureId}: fetch error — ${e}`)
     return null
   }
-  const json = await res.json()
-  setCached(key, json, 30 * 1000)
-  return json as FootballDataMatch
 }
 
 /** Fetch detailed match including goals, bookings. Cached 60s. */

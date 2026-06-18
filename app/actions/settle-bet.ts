@@ -22,7 +22,7 @@ export async function settleSingleBet(betId: number) {
   if (m.status !== "finished" && m.externalId) {
     const detail = await fetchMatchDetail(Number(m.externalId), true)
     if (!detail) {
-      return { ok: false as const, error: "API injoignable. Réessaie dans 1 minute (limite 10 req/min)." }
+      return { ok: false as const, error: "API indisponible (timeout Vercel 10s ou limite 10 req/min atteinte). Réessaie." }
     }
 
     const hasScore = detail.score.fullTime.home != null && detail.score.fullTime.away != null
