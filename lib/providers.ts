@@ -142,7 +142,7 @@ export async function fetchMatchDetail(fixtureId: number, force = false): Promis
 
   try {
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 8000) // 8s timeout
+    const timeout = setTimeout(() => controller.abort(), 9000) // 9s timeout (Vercel has 10s)
 
     const url = `${FOOTBALL_DATA_BASE}/matches/${fixtureId}`
     const res = await fetch(url, {
