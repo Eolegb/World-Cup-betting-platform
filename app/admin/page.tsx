@@ -146,55 +146,54 @@ export default async function AdminPage() {
           </span>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full caption-bottom text-sm">
+          <table className="w-full caption-bottom text-sm table-fixed">
             <thead>
               <tr className="border-b border-border">
-                <th className="h-9 px-3 text-left font-medium text-muted-foreground text-xs">#</th>
-                <th className="h-9 px-3 text-left font-medium text-muted-foreground text-xs">Joueur</th>
-                <th className="h-9 px-3 text-left font-medium text-muted-foreground text-xs">Match</th>
-                <th className="h-9 px-3 text-left font-medium text-muted-foreground text-xs">Pari</th>
-                <th className="h-9 px-3 text-right font-medium text-muted-foreground text-xs">Mise</th>
-                <th className="h-9 px-3 text-right font-medium text-muted-foreground text-xs">Cote</th>
-                <th className="h-9 px-3 text-center font-medium text-muted-foreground text-xs">Statut</th>
-                <th className="h-9 px-3 text-center font-medium text-muted-foreground text-xs"></th>
-                <th className="h-9 px-3 text-right font-medium text-muted-foreground text-xs">Gain</th>
-                <th className="h-9 px-3 text-right font-medium text-muted-foreground text-xs">Date</th>
+                <th className="h-9 px-2 text-left font-medium text-muted-foreground text-xs w-9">#</th>
+                <th className="h-9 px-2 text-left font-medium text-muted-foreground text-xs w-[80px]">Joueur</th>
+                <th className="h-9 px-2 text-left font-medium text-muted-foreground text-xs w-[140px]">Match</th>
+                <th className="h-9 px-2 text-left font-medium text-muted-foreground text-xs">Pari</th>
+                <th className="h-9 px-2 text-right font-medium text-muted-foreground text-xs w-[50px]">Mise</th>
+                <th className="h-9 px-2 text-right font-medium text-muted-foreground text-xs w-[45px]">Cote</th>
+                <th className="h-9 px-2 text-center font-medium text-muted-foreground text-xs w-[70px]">Statut</th>
+                <th className="h-9 px-2 text-right font-medium text-muted-foreground text-xs w-[60px]">Gain</th>
+                <th className="h-9 px-2 text-right font-medium text-muted-foreground text-xs w-[70px]">Date</th>
               </tr>
             </thead>
             <tbody>
               {bets.map((b) => (
                 <tr key={b.betId} className={`border-b border-border/50 transition-colors hover:bg-muted/50 ${b.status === "won" ? "bg-primary/3" : b.status === "lost" ? "bg-destructive/3" : ""}`}>
-                  <td className="px-3 py-2 tabular text-[10px] text-muted-foreground">#{b.betId}</td>
-                  <td className="px-3 py-2">
-                    <span className="text-sm font-medium text-foreground truncate max-w-[90px] block">{b.displayName}</span>
+                  <td className="px-2 py-2.5 tabular text-[10px] text-muted-foreground">#{b.betId}</td>
+                  <td className="px-2 py-2.5">
+                    <span className="text-xs font-medium text-foreground truncate block">{b.displayName}</span>
                   </td>
-                  <td className="px-3 py-2">
-                    <span className="text-xs text-foreground">{b.homeTeam} {b.matchStatus === "finished" ? `${b.homeScore}-${b.awayScore}` : "vs"} {b.awayTeam}</span>
+                  <td className="px-2 py-2.5">
+                    <span className="text-[11px] text-foreground leading-tight block">{b.homeTeam}<br />{b.matchStatus === "finished" ? `${b.homeScore}-${b.awayScore}` : "vs"} {b.awayTeam}</span>
                   </td>
-                  <td className="px-3 py-2">
-                    <span className="text-xs text-foreground max-w-[150px] truncate block">
+                  <td className="px-2 py-2.5">
+                    <span className="text-[11px] text-foreground whitespace-normal leading-tight block">
                       {b.label}
                       {b.isJoker && <span className="ml-1 text-[9px] text-gold">🎩</span>}
                     </span>
-                    <span className="text-[10px] text-muted-foreground">{b.marketType}</span>
+                    <span className="text-[9px] text-muted-foreground">{b.marketType}</span>
                   </td>
-                  <td className="px-3 py-2 text-right font-heading tabular text-xs text-foreground">{formatMoney(b.stake)}</td>
-                  <td className="px-3 py-2 text-right tabular text-xs text-gold">{formatOdds(b.odds)}</td>
-                  <td className="px-3 py-2 text-center">
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                  <td className="px-2 py-2.5 text-right font-heading tabular text-[11px] text-foreground">{formatMoney(b.stake)}</td>
+                  <td className="px-2 py-2.5 text-right tabular text-[11px] text-gold">{formatOdds(b.odds)}</td>
+                  <td className="px-2 py-2.5 text-center">
+                    <span className={`inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
                       b.status === "won" ? "bg-primary/20 text-primary" : b.status === "lost" ? "bg-destructive/20 text-destructive" : "bg-live/15 text-live"
                     }`}>
                       {b.status === "won" ? "Gagné" : b.status === "lost" ? "Perdu" : "En cours"}
                     </span>
+                    <div className="mt-1 flex items-center justify-center gap-0.5">
+                      {b.status === "pending" && <SettleBetButton betId={b.betId} />}
+                      <OverrideBetButton betId={b.betId} currentStatus={b.status} />
+                    </div>
                   </td>
-                  <td className="px-1 py-2 text-center">
-                    {b.status === "pending" && <SettleBetButton betId={b.betId} />}
-                    <OverrideBetButton betId={b.betId} currentStatus={b.status} />
-                  </td>
-                  <td className={`px-3 py-2 text-right tabular text-xs font-heading ${b.status === "won" ? "text-primary" : b.status === "lost" ? "text-destructive" : "text-muted-foreground"}`}>
+                  <td className={`px-2 py-2.5 text-right tabular text-[11px] font-heading ${b.status === "won" ? "text-primary" : b.status === "lost" ? "text-destructive" : "text-muted-foreground"}`}>
                     {b.status === "won" ? `+${formatMoney(b.payout - b.stake)}` : b.status === "lost" ? `-${formatMoney(b.stake)}` : formatMoney(b.potentialPayout)}
                   </td>
-                  <td className="px-3 py-2 text-right tabular text-[10px] text-muted-foreground">
+                  <td className="px-2 py-2.5 text-right tabular text-[10px] text-muted-foreground">
                     {new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(b.createdAt))}
                   </td>
                 </tr>
