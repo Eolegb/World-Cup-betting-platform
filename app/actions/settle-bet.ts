@@ -3,6 +3,7 @@
 import { db } from "@/lib/db"
 import { match, bet, profile, ledger, matchEvent } from "@/lib/db/schema"
 import { requireAdmin } from "@/lib/session"
+import { fetchMatchDetail } from "@/lib/providers"
 import { resolveBet, type GoalEvent, type ResolvableMatch } from "@/lib/resolve"
 import { eq, and, sql } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
@@ -14,11 +15,51 @@ export async function settleSingleBet(betId: number) {
   if (!b) return { ok: false as const, error: "Pari introuvable." }
   if (b.status !== "pending") return { ok: false as const, error: `Déjà ${b.status === "won" ? "gagné" : "perdu"}.` }
 
-  const [m] = await db.select().from(match).where(eq(match.id, b.matchId)).limit(1)
+  let [m] = await db.select().from(match).where(eq(match.id, b.matchId)).limit(1)
   if (!m) return { ok: false as const, error: "Match introuvable." }
-  if (m.status !== "finished") return { ok: false as const, error: "Le match n'est pas encore terminé." }
 
-  const events = await db.select().from(matchEvent).where(and(eq(matchEvent.matchId, m.id), eq(matchEvent.type, "goal"))).orderBy(matchEvent.minute)
+  // If match not finished in DB, check the API live
+  if (m.status !== "finished" && m.externalId) {
+    const detail = await fetchMatchDetail(m.externalId)
+    if (detail) {
+      const apiFinished = detail.status === "FINISHED" ||
+        (detail.score.fullTime.home != null && detail.score.fullTime.away != null)
+
+      if (apiFinished) {
+        const homeScore = detail.score.fullTime.home ?? 0
+        const awayScore = detail.score.fullTime.away ?? 0
+
+        // Update match in DB
+        await db.update(match)
+          .set({ status: "finished", homeScore, awayScore, elapsed: 90, lastSyncedAt: new Date() })
+          .where(eq(match.id, m.id))
+
+        // Store goals
+        if (detail.goals) {
+          for (const g of detail.goals) {
+            await db.insert(matchEvent)
+              .values({ matchId: m.id, type: "goal", detail: g.type ?? "REGULAR", player: g.scorer?.name ?? null, team: g.team?.name ?? "", minute: g.minute, extraMinute: g.extraTime })
+              .onConflictDoNothing()
+          }
+        }
+
+        // Re-fetch updated match
+        const [updated] = await db.select().from(match).where(eq(match.id, b.matchId)).limit(1)
+        if (updated) m = updated
+      } else {
+        return { ok: false as const, error: "Le match n'est pas encore terminé (vérifié via l'API)." }
+      }
+    } else {
+      return { ok: false as const, error: "Impossible de vérifier le statut du match (API indisponible)." }
+    }
+  } else if (m.status !== "finished") {
+    return { ok: false as const, error: "Le match n'est pas encore terminé (pas d'ID externe)." }
+  }
+
+  // Fetch goal events
+  const events = await db.select().from(matchEvent)
+    .where(and(eq(matchEvent.matchId, m.id), eq(matchEvent.type, "goal")))
+    .orderBy(matchEvent.minute)
 
   const goals: GoalEvent[] = events.map(e => ({
     player: e.player,
@@ -47,8 +88,14 @@ export async function settleSingleBet(betId: number) {
   await db.transaction(async (tx) => {
     await tx.update(bet).set({ status: newStatus, payout, settledAt: new Date() }).where(eq(bet.id, b.id))
     if (payout > 0) {
-      const [p] = await tx.update(profile).set({ balance: sql`${profile.balance} + ${payout}`, balanceBackup: sql`${profile.balance}` }).where(eq(profile.userId, b.userId)).returning()
-      await tx.insert(ledger).values({ userId: b.userId, betId: b.id, amount: payout, balanceAfter: p.balance, reason: `Gain: ${b.label}` })
+      const [p] = await tx.update(profile)
+        .set({ balance: sql`${profile.balance} + ${payout}`, balanceBackup: sql`${profile.balance}` })
+        .where(eq(profile.userId, b.userId))
+        .returning()
+      await tx.insert(ledger).values({
+        userId: b.userId, betId: b.id, amount: payout,
+        balanceAfter: p.balance, reason: `Gain: ${b.label}`,
+      })
     }
   })
 
