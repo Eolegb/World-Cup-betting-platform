@@ -7,6 +7,7 @@ import { redirect } from "next/navigation"
 import { AdminActions } from "./actions"
 import { ResetBalancesButton } from "@/components/reset-balances-button"
 import { SettleBetButton } from "@/components/settle-bet-button"
+import { OverrideBetButton } from "@/components/override-bet-button"
 import { ManualScoreForm } from "@/components/manual-score-form"
 import { formatMoney, formatOdds, betStatusLabel } from "@/lib/format"
 import { eq } from "drizzle-orm"
@@ -188,6 +189,7 @@ export default async function AdminPage() {
                   </td>
                   <td className="px-1 py-2 text-center">
                     {b.status === "pending" && <SettleBetButton betId={b.betId} />}
+                    <OverrideBetButton betId={b.betId} currentStatus={b.status} />
                   </td>
                   <td className={`px-3 py-2 text-right tabular text-xs font-heading ${b.status === "won" ? "text-primary" : b.status === "lost" ? "text-destructive" : "text-muted-foreground"}`}>
                     {b.status === "won" ? `+${formatMoney(b.payout - b.stake)}` : b.status === "lost" ? `-${formatMoney(b.stake)}` : formatMoney(b.potentialPayout)}
