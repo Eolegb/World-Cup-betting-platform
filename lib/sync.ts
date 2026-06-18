@@ -4,12 +4,13 @@ import {
   fetchFixtures,
   fetchLiveFixtures,
   fetchFixtureEvents,
+  fetchMatchDetail,
   type FootballDataMatch,
   type FootballDataEvent,
 } from "@/lib/providers"
 import { updateAllOdds } from "@/lib/odds-service"
 import { resolveBet, type GoalEvent, type ResolvableMatch } from "@/lib/resolve"
-import { and, eq, sql } from "drizzle-orm"
+import { and, eq, lt, sql } from "drizzle-orm"
 
 let syncing = false
 
@@ -36,33 +37,48 @@ export async function runSync(): Promise<{ ok: boolean; results?: string[]; erro
       results.push(`Updated ${liveFixtures.length} live fixtures`)
     }
 
-    const liveMatches = await db.select().from(match).where(eq(match.status, "live"))
+    // Detect finished matches (kickoff + 95 min, still "scheduled")
+    const cutoff = new Date(Date.now() - 95 * 60 * 1000)
+    const candidates = await db.select().from(match).where(and(eq(match.status, "scheduled"), lt(match.kickoff, cutoff)))
+
     let eventsCount = 0
-    for (const m of liveMatches) {
-      if (m.externalId) {
-        const events = await fetchFixtureEvents(m.externalId)
-        if (events.length > 0) {
-          await syncEvents(m.id, events)
-          eventsCount += events.length
+    let settledCount = 0
+    for (const m of candidates) {
+      if (!m.externalId) continue
+      const detail = await fetchMatchDetail(m.externalId)
+      if (!detail) continue
+      const isFinished = detail.status === "FINISHED" ||
+        (detail.score.fullTime.home != null && detail.score.fullTime.away != null)
+      if (!isFinished) continue
+
+      const homeScore = detail.score.fullTime.home ?? 0
+      const awayScore = detail.score.fullTime.away ?? 0
+      await db.update(match).set({ status: "finished", homeScore, awayScore, elapsed: 90, lastSyncedAt: new Date() }).where(eq(match.id, m.id))
+
+      if (detail.goals) {
+        for (const g of detail.goals) {
+          await db.insert(matchEvent).values({ matchId: m.id, type: "goal", detail: g.type ?? "REGULAR", player: g.scorer?.name ?? null, team: g.team?.name ?? "", minute: g.minute, extraMinute: g.extraTime }).onConflictDoNothing()
+          eventsCount++
         }
       }
+      settledCount += await settleMatch(m.id)
     }
     if (eventsCount > 0) results.push(`Synced ${eventsCount} events`)
+    if (settledCount > 0) results.push(`Settled ${settledCount} bets`)
 
+    // Also settle any already-finished matches with pending bets
+    const finishedMatches = await db.select().from(match).where(eq(match.status, "finished"))
+    for (const m of finishedMatches) {
+      settledCount += await settleMatch(m.id)
+    }
+
+    // Sync odds
     const oddsResult = await updateAllOdds()
     if (oddsResult.ok) {
       results.push(`Synced odds for ${oddsResult.stored} matches`)
     } else {
       results.push("No odds from API")
     }
-
-    const finishedMatches = await db.select().from(match).where(eq(match.status, "finished"))
-    let settledCount = 0
-    for (const m of finishedMatches) {
-      const count = await settleMatch(m)
-      settledCount += count
-    }
-    if (settledCount > 0) results.push(`Settled ${settledCount} bets`)
 
     return { ok: true, results }
   } catch (e) {

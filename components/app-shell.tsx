@@ -40,8 +40,13 @@ function fireBgSync() {
   lastBgSync = now
   bgSyncRunning = true
   runSync().finally(() => { bgSyncRunning = false })
-  // Also trigger push notifications in background
-  fetch("/api/push/send").catch(() => {})
+  // Trigger push in background — fire and forget
+  if (typeof window === "undefined") {
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : process.env.BETTER_AUTH_URL ?? "http://localhost:3000"
+    fetch(`${baseUrl}/api/push/send`).catch(() => {})
+  }
 }
 
 export async function AppShell({
