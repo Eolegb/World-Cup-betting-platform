@@ -274,3 +274,36 @@ export async function getStreakLeaderboard() {
     .where(eq(profile.isAdmin, false))
     .orderBy(desc(profile.streak))
 }
+
+// --- Admin: all bets with user + match info ---
+
+export async function getAllBetsAdmin() {
+  return db
+    .select({
+      betId: bet.id,
+      userId: bet.userId,
+      displayName: profile.displayName,
+      matchId: bet.matchId,
+      homeTeam: match.homeTeam,
+      awayTeam: match.awayTeam,
+      homeScore: match.homeScore,
+      awayScore: match.awayScore,
+      matchStatus: match.status,
+      marketType: bet.marketType,
+      label: bet.label,
+      stake: bet.stake,
+      odds: bet.odds,
+      potentialPayout: bet.potentialPayout,
+      status: bet.status,
+      payout: bet.payout,
+      isJoker: bet.isJoker,
+      bonusPoints: bet.bonusPoints,
+      createdAt: bet.createdAt,
+      settledAt: bet.settledAt,
+    })
+    .from(bet)
+    .innerJoin(profile, eq(bet.userId, profile.userId))
+    .innerJoin(match, eq(bet.matchId, match.id))
+    .orderBy(desc(bet.createdAt))
+    .limit(200)
+}

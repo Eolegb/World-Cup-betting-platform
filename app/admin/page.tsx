@@ -1,11 +1,12 @@
 import { requireUser, AppShell } from "@/components/app-shell"
-import { getMatches } from "@/lib/queries"
+import { getMatches, getAllBetsAdmin } from "@/lib/queries"
 import { db } from "@/lib/db"
 import { user as userTable, profile } from "@/lib/db/schema"
-import { Database, RefreshCw, FlaskConical, Users } from "lucide-react"
+import { Database, RefreshCw, FlaskConical, Users, Ticket } from "lucide-react"
 import { redirect } from "next/navigation"
 import { AdminActions } from "./actions"
 import { ResetBalancesButton } from "@/components/reset-balances-button"
+import { formatMoney, formatOdds, betStatusLabel } from "@/lib/format"
 import { eq } from "drizzle-orm"
 
 export const dynamic = "force-dynamic"
@@ -28,6 +29,12 @@ export default async function AdminPage() {
     isAdmin: profile.isAdmin,
     streak: profile.streak,
   }).from(userTable).leftJoin(profile, eq(userTable.id, profile.userId))
+
+  const bets = await getAllBetsAdmin()
+  const totalBets = bets.length
+  const pendingCount = bets.filter(b => b.status === "pending").length
+  const wonCount = bets.filter(b => b.status === "won").length
+  const lostCount = bets.filter(b => b.status === "lost").length
 
   return (
     <AppShell profile={p}>
@@ -107,16 +114,85 @@ export default async function AdminPage() {
           <p className="mt-1 font-heading text-xl tabular text-foreground">{totalMatches}</p>
         </div>
         <div className="rounded-2xl border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">En direct</p>
-          <p className="mt-1 font-heading text-xl tabular text-live">{live}</p>
+          <p className="text-xs text-muted-foreground">Paris placés</p>
+          <p className="mt-1 font-heading text-xl tabular text-foreground">{totalBets}</p>
         </div>
         <div className="rounded-2xl border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">À venir</p>
-          <p className="mt-1 font-heading text-xl tabular text-foreground">{scheduled}</p>
+          <p className="text-xs text-muted-foreground">Gagnés / Perdus</p>
+          <p className="mt-1 font-heading text-xl tabular text-foreground">
+            <span className="text-primary">{wonCount}</span>
+            <span className="text-muted-foreground"> / </span>
+            <span className="text-destructive">{lostCount}</span>
+          </p>
         </div>
         <div className="rounded-2xl border border-border bg-card p-4">
-          <p className="text-xs text-muted-foreground">Terminés</p>
-          <p className="mt-1 font-heading text-xl tabular text-muted-foreground">{finished}</p>
+          <p className="text-xs text-muted-foreground">En cours</p>
+          <p className="mt-1 font-heading text-xl tabular text-live">{pendingCount}</p>
+        </div>
+      </div>
+
+      {/* Bets list */}
+      <div className="mb-6 rounded-2xl border border-border bg-card overflow-hidden">
+        <div className="border-b border-border p-4 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 font-heading text-base text-card-foreground">
+            <Ticket className="h-4 w-4 text-primary" />
+            Tous les paris ({totalBets})
+          </h2>
+          <span className="text-xs text-muted-foreground">
+            <span className="text-primary">{wonCount} gagnés</span> · <span className="text-destructive">{lostCount} perdus</span> · {pendingCount} en cours
+          </span>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full caption-bottom text-sm">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="h-9 px-3 text-left font-medium text-muted-foreground text-xs">#</th>
+                <th className="h-9 px-3 text-left font-medium text-muted-foreground text-xs">Joueur</th>
+                <th className="h-9 px-3 text-left font-medium text-muted-foreground text-xs">Match</th>
+                <th className="h-9 px-3 text-left font-medium text-muted-foreground text-xs">Pari</th>
+                <th className="h-9 px-3 text-right font-medium text-muted-foreground text-xs">Mise</th>
+                <th className="h-9 px-3 text-right font-medium text-muted-foreground text-xs">Cote</th>
+                <th className="h-9 px-3 text-center font-medium text-muted-foreground text-xs">Statut</th>
+                <th className="h-9 px-3 text-right font-medium text-muted-foreground text-xs">Gain</th>
+                <th className="h-9 px-3 text-right font-medium text-muted-foreground text-xs">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {bets.map((b) => (
+                <tr key={b.betId} className={`border-b border-border/50 transition-colors hover:bg-muted/50 ${b.status === "won" ? "bg-primary/3" : b.status === "lost" ? "bg-destructive/3" : ""}`}>
+                  <td className="px-3 py-2 tabular text-[10px] text-muted-foreground">#{b.betId}</td>
+                  <td className="px-3 py-2">
+                    <span className="text-sm font-medium text-foreground truncate max-w-[90px] block">{b.displayName}</span>
+                  </td>
+                  <td className="px-3 py-2">
+                    <span className="text-xs text-foreground">{b.homeTeam} {b.matchStatus === "finished" ? `${b.homeScore}-${b.awayScore}` : "vs"} {b.awayTeam}</span>
+                  </td>
+                  <td className="px-3 py-2">
+                    <span className="text-xs text-foreground max-w-[150px] truncate block">
+                      {b.label}
+                      {b.isJoker && <span className="ml-1 text-[9px] text-gold">🎩</span>}
+                    </span>
+                    <span className="text-[10px] text-muted-foreground">{b.marketType}</span>
+                  </td>
+                  <td className="px-3 py-2 text-right font-heading tabular text-xs text-foreground">{formatMoney(b.stake)}</td>
+                  <td className="px-3 py-2 text-right tabular text-xs text-gold">{formatOdds(b.odds)}</td>
+                  <td className="px-3 py-2 text-center">
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium ${
+                      b.status === "won" ? "bg-primary/20 text-primary" : b.status === "lost" ? "bg-destructive/20 text-destructive" : "bg-live/15 text-live"
+                    }`}>
+                      {b.status === "won" ? "Gagné" : b.status === "lost" ? "Perdu" : "En cours"}
+                    </span>
+                  </td>
+                  <td className={`px-3 py-2 text-right tabular text-xs font-heading ${b.status === "won" ? "text-primary" : b.status === "lost" ? "text-destructive" : "text-muted-foreground"}`}>
+                    {b.status === "won" ? `+${formatMoney(b.payout - b.stake)}` : b.status === "lost" ? `-${formatMoney(b.stake)}` : formatMoney(b.potentialPayout)}
+                  </td>
+                  <td className="px-3 py-2 text-right tabular text-[10px] text-muted-foreground">
+                    {new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(b.createdAt))}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
 
