@@ -1,11 +1,10 @@
 import { requireUser, AppShell } from "@/components/app-shell"
 import { getMatches } from "@/lib/queries"
 import MatchCard from "@/components/match-card"
-import { AutoRefresh } from "@/components/auto-refresh"
 import { ActivityFeed } from "@/components/activity-feed"
 import { Avatar } from "@/components/avatar"
 import { formatMoney } from "@/lib/format"
-import { Radio, CalendarClock, Flag, Zap, Clock } from "lucide-react"
+import { CalendarClock, Flag, Zap, Clock } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
@@ -32,7 +31,6 @@ export default async function DashboardPage() {
 
   return (
     <AppShell profile={profile}>
-      {matches.length > 0 && <AutoRefresh seconds={30} />}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
         <div className="min-w-0 space-y-6">

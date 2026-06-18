@@ -6,7 +6,6 @@ import { LiveScore } from "@/components/live-score"
 import { BettingTabs } from "@/components/betting-tabs"
 import { OddsDisplay } from "@/components/odds-display"
 import { LiveBadge, StatusPill } from "@/components/match-bits"
-import { AutoRefresh } from "@/components/auto-refresh"
 import { flagForTeam } from "@/lib/flags"
 import { teamColors } from "@/lib/team-colors"
 import { formatMoney, betStatusLabel, formatOdds } from "@/lib/format"
@@ -48,7 +47,6 @@ export default async function MatchDetailPage({
 
   return (
     <AppShell profile={p}>
-      {isLive && <AutoRefresh seconds={30} />}
 
       {/* Match header */}
       <div className="relative mb-6 overflow-hidden rounded-3xl border border-border/50 glass-strong animate-scale-in">

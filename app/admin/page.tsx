@@ -9,6 +9,7 @@ import { ResetBalancesButton } from "@/components/reset-balances-button"
 import { SettleBetButton } from "@/components/settle-bet-button"
 import { OverrideBetButton } from "@/components/override-bet-button"
 import { ManualScoreForm } from "@/components/manual-score-form"
+import { FetchScoreButton } from "@/components/fetch-score-button"
 import { formatMoney, formatOdds, betStatusLabel } from "@/lib/format"
 import { eq } from "drizzle-orm"
 
@@ -260,9 +261,12 @@ export default async function AdminPage() {
                       </span>
                     </td>
                     <td className="p-2 text-center">
-                      {m.status !== "finished" && (
-                        <ManualScoreForm matchId={m.id} homeTeam={m.homeTeam} awayTeam={m.awayTeam} />
-                      )}
+                      <div className="flex items-center gap-1 justify-center">
+                        <FetchScoreButton matchId={m.id} externalId={m.externalId} homeTeam={m.homeTeam} awayTeam={m.awayTeam} />
+                        {m.status !== "finished" && (
+                          <ManualScoreForm matchId={m.id} homeTeam={m.homeTeam} awayTeam={m.awayTeam} />
+                        )}
+                      </div>
                     </td>
                   </tr>
                   )
