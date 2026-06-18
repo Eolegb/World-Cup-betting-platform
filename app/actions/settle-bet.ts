@@ -21,8 +21,9 @@ export async function settleSingleBet(betId: number) {
   // If match not finished in DB, fetch ALL fixtures (1 API call total) to check
   if (m.status !== "finished" && m.externalId) {
     try {
-      const fixtures = await fetchFixtures(true) // force refresh — 1 API call for all 104 matches
-      const fixture = fixtures.find(f => f.id === m.externalId)
+      const fixtures = await fetchFixtures(true)
+      const extId = Number(m.externalId)
+      const fixture = fixtures.find(f => f.id === extId)
 
       if (!fixture) {
         return { ok: false as const, error: "Match non trouvé dans l'API." }
