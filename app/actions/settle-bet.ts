@@ -20,40 +20,43 @@ export async function settleSingleBet(betId: number) {
 
   // If match not finished in DB, check the API live
   if (m.status !== "finished" && m.externalId) {
-    const detail = await fetchMatchDetail(m.externalId)
-    if (detail) {
-      const apiFinished = detail.status === "FINISHED" ||
+    try {
+      const detail = await fetchMatchDetail(m.externalId, true)
+      if (!detail) {
+        return { ok: false as const, error: "API football-data.org inaccessible (limite 10 req/min peut-être atteinte). Réessaie dans 1 minute." }
+      }
+
+      const isFinished = detail.status === "FINISHED" ||
         (detail.score.fullTime.home != null && detail.score.fullTime.away != null)
 
-      if (apiFinished) {
-        const homeScore = detail.score.fullTime.home ?? 0
-        const awayScore = detail.score.fullTime.away ?? 0
-
-        // Update match in DB
-        await db.update(match)
-          .set({ status: "finished", homeScore, awayScore, elapsed: 90, lastSyncedAt: new Date() })
-          .where(eq(match.id, m.id))
-
-        // Store goals
-        if (detail.goals) {
-          for (const g of detail.goals) {
-            await db.insert(matchEvent)
-              .values({ matchId: m.id, type: "goal", detail: g.type ?? "REGULAR", player: g.scorer?.name ?? null, team: g.team?.name ?? "", minute: g.minute, extraMinute: g.extraTime })
-              .onConflictDoNothing()
-          }
-        }
-
-        // Re-fetch updated match
-        const [updated] = await db.select().from(match).where(eq(match.id, b.matchId)).limit(1)
-        if (updated) m = updated
-      } else {
+      if (!isFinished) {
         return { ok: false as const, error: "Le match n'est pas encore terminé (vérifié via l'API)." }
       }
-    } else {
-      return { ok: false as const, error: "Impossible de vérifier le statut du match (API indisponible)." }
+
+      // Update match in DB
+      const homeScore = detail.score.fullTime.home ?? 0
+      const awayScore = detail.score.fullTime.away ?? 0
+      await db.update(match)
+        .set({ status: "finished", homeScore, awayScore, elapsed: 90, lastSyncedAt: new Date() })
+        .where(eq(match.id, m.id))
+
+      // Store goals
+      if (detail.goals) {
+        for (const g of detail.goals) {
+          await db.insert(matchEvent)
+            .values({ matchId: m.id, type: "goal", detail: g.type ?? "REGULAR", player: g.scorer?.name ?? null, team: g.team?.name ?? "", minute: g.minute, extraMinute: g.extraTime })
+            .onConflictDoNothing()
+        }
+      }
+
+      // Re-fetch updated match
+      const [updated] = await db.select().from(match).where(eq(match.id, b.matchId)).limit(1)
+      if (updated) m = updated
+    } catch (e) {
+      return { ok: false as const, error: "API football-data.org inaccessible (limite 10 req/min peut-être atteinte). Réessaie dans 1 minute." }
     }
   } else if (m.status !== "finished") {
-    return { ok: false as const, error: "Le match n'est pas encore terminé (pas d'ID externe)." }
+    return { ok: false as const, error: "Le match n'est pas encore terminé." }
   }
 
   // Fetch goal events
@@ -68,18 +71,14 @@ export async function settleSingleBet(betId: number) {
   }))
 
   const resolvable: ResolvableMatch = {
-    homeTeam: m.homeTeam,
-    awayTeam: m.awayTeam,
-    homeScore: m.homeScore,
-    awayScore: m.awayScore,
-    goals,
+    homeTeam: m.homeTeam, awayTeam: m.awayTeam,
+    homeScore: m.homeScore, awayScore: m.awayScore, goals,
   }
 
   const result = resolveBet(resolvable, {
     marketType: b.marketType,
     selection: b.selection as Record<string, unknown>,
-    minuteFrom: b.minuteFrom,
-    minuteTo: b.minuteTo,
+    minuteFrom: b.minuteFrom, minuteTo: b.minuteTo,
   })
 
   const payout = result === "won" ? b.potentialPayout : 0
@@ -90,8 +89,7 @@ export async function settleSingleBet(betId: number) {
     if (payout > 0) {
       const [p] = await tx.update(profile)
         .set({ balance: sql`${profile.balance} + ${payout}`, balanceBackup: sql`${profile.balance}` })
-        .where(eq(profile.userId, b.userId))
-        .returning()
+        .where(eq(profile.userId, b.userId)).returning()
       await tx.insert(ledger).values({
         userId: b.userId, betId: b.id, amount: payout,
         balanceAfter: p.balance, reason: `Gain: ${b.label}`,

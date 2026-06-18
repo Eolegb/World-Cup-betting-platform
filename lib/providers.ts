@@ -131,16 +131,21 @@ export async function fetchLiveFixtures(): Promise<FootballDataMatch[]> {
   return results
 }
 
-/** Fetch a single match detail (for minute + goals). Cached 30s. */
-export async function fetchMatchDetail(fixtureId: number): Promise<FootballDataMatch | null> {
+/** Fetch a single match detail (for minute + goals). Cached 30s. Pass force=true to bypass. */
+export async function fetchMatchDetail(fixtureId: number, force = false): Promise<FootballDataMatch | null> {
   const key = `match-detail:${fixtureId}`
-  const cached = getCached<FootballDataMatch>(key)
-  if (cached) return cached
+  if (!force) {
+    const cached = getCached<FootballDataMatch>(key)
+    if (cached) return cached
+  }
   if (!hasFootballKey()) return null
 
   const url = `${FOOTBALL_DATA_BASE}/matches/${fixtureId}`
   const res = await fetch(url, { headers: footballDataHeaders(), cache: "no-store" })
-  if (!res.ok) return null
+  if (!res.ok) {
+    console.error(`[football-data] Match detail ${fixtureId}: HTTP ${res.status}`)
+    return null
+  }
   const json = await res.json()
   setCached(key, json, 30 * 1000)
   return json as FootballDataMatch
