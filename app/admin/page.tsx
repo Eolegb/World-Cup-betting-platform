@@ -6,6 +6,7 @@ import { Database, RefreshCw, FlaskConical, Users, Ticket } from "lucide-react"
 import { redirect } from "next/navigation"
 import { AdminActions } from "./actions"
 import { ResetBalancesButton } from "@/components/reset-balances-button"
+import { SettleBetButton } from "@/components/settle-bet-button"
 import { formatMoney, formatOdds, betStatusLabel } from "@/lib/format"
 import { eq } from "drizzle-orm"
 
@@ -153,6 +154,7 @@ export default async function AdminPage() {
                 <th className="h-9 px-3 text-right font-medium text-muted-foreground text-xs">Mise</th>
                 <th className="h-9 px-3 text-right font-medium text-muted-foreground text-xs">Cote</th>
                 <th className="h-9 px-3 text-center font-medium text-muted-foreground text-xs">Statut</th>
+                <th className="h-9 px-3 text-center font-medium text-muted-foreground text-xs"></th>
                 <th className="h-9 px-3 text-right font-medium text-muted-foreground text-xs">Gain</th>
                 <th className="h-9 px-3 text-right font-medium text-muted-foreground text-xs">Date</th>
               </tr>
@@ -182,6 +184,9 @@ export default async function AdminPage() {
                     }`}>
                       {b.status === "won" ? "Gagné" : b.status === "lost" ? "Perdu" : "En cours"}
                     </span>
+                  </td>
+                  <td className="px-1 py-2 text-center">
+                    {b.status === "pending" && <SettleBetButton betId={b.betId} />}
                   </td>
                   <td className={`px-3 py-2 text-right tabular text-xs font-heading ${b.status === "won" ? "text-primary" : b.status === "lost" ? "text-destructive" : "text-muted-foreground"}`}>
                     {b.status === "won" ? `+${formatMoney(b.payout - b.stake)}` : b.status === "lost" ? `-${formatMoney(b.stake)}` : formatMoney(b.potentialPayout)}
