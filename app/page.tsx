@@ -4,7 +4,7 @@ import MatchCard from "@/components/match-card"
 import { ActivityFeed } from "@/components/activity-feed"
 import { Avatar } from "@/components/avatar"
 import { formatMoney } from "@/lib/format"
-import { CalendarClock, Flag, Zap, Clock } from "lucide-react"
+import { Radio, CalendarClock, Flag, Zap, Clock } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
