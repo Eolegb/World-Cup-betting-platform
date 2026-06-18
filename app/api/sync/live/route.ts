@@ -43,7 +43,13 @@ export async function GET() {
         }
       }
 
-      // Settle bets
+      // Settle bets for this match
+      betsSettled += await settleMatch(m.id)
+    }
+
+    // Also settle ALL finished matches that still have pending bets (catch-up)
+    const allFinished = await db.select({ id: match.id }).from(match).where(eq(match.status, "finished"))
+    for (const m of allFinished) {
       betsSettled += await settleMatch(m.id)
     }
 
