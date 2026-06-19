@@ -3,12 +3,25 @@
 import { useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 
-const API_KEY = "42ce3f42f729447884fa54aa9735b19d"
+const API_URL = "https://worldcup26.ir/get/games"
+
+type ApiGame = {
+  id: string
+  home_team_name_en: string
+  away_team_name_en: string
+  home_score: string
+  away_score: string
+  home_scorers: string | null
+  away_scorers: string | null
+  finished: string // "TRUE" | "FALSE"
+  time_elapsed: string
+  local_date: string
+}
 
 /**
- * Fetches match scores directly from the browser (no Vercel timeout).
- * Runs every N seconds. When a match finishes, saves the result to DB.
- * This bypasses Vercel's 10s serverless limit entirely.
+ * Fetches live scores from worldcup26.ir directly from the browser.
+ * This is a free API, no key required, updated every few seconds.
+ * No Vercel timeout risk — the browser makes the HTTP call.
  */
 export function useLiveScores(seconds = 45) {
   const router = useRouter()
@@ -20,61 +33,64 @@ export function useLiveScores(seconds = 45) {
 
     async function tick() {
       try {
-        console.log("[LiveScores] Fetching all WC matches from browser...")
-
-        // 1. Fetch ALL fixtures in one call (1 API request, < 2s from browser)
-        const res = await fetch(
-          `https://api.football-data.org/v4/competitions/WC/matches?season=2026&limit=200`,
-          { headers: { "X-Auth-Token": API_KEY } }
-        )
-
-        if (!res.ok) {
-          console.warn("[LiveScores] API error:", res.status)
-          return
-        }
-
+        const res = await fetch(API_URL)
+        if (!res.ok) return
         const data = await res.json()
-        const fixtures = data.matches || []
-        console.log(`[LiveScores] Got ${fixtures.length} fixtures, checking for changes...`)
+        const games: ApiGame[] = data.games || []
 
-        // 2. Find finished matches with scores
-        const finished = fixtures.filter(
-          (f: any) =>
-            f.status === "FINISHED" &&
-            f.score?.fullTime?.home != null
+        // Find finished games with scores
+        const finished = games.filter(
+          g => g.finished === "TRUE" && g.home_score !== "null"
         )
 
         if (finished.length > 0) {
-          // 3. Send results to server for saving (instantané, pas d'appel API côté serveur)
           const { saveBatchResults } = await import("@/app/actions/save-batch-results")
           const result = await saveBatchResults(
-            finished.map((f: any) => ({
-              externalId: f.id,
-              homeScore: f.score.fullTime.home,
-              awayScore: f.score.fullTime.away,
-              goals: (f.goals || []).map((g: any) => ({
-                player: g.scorer?.name ?? "?",
-                minute: g.minute ?? 0,
-                team: g.team?.name ?? "",
-              })),
+            finished.map(g => ({
+              homeTeam: g.home_team_name_en,
+              awayTeam: g.away_team_name_en,
+              homeScore: parseInt(g.home_score) || 0,
+              awayScore: parseInt(g.away_score) || 0,
+              goals: [...parseScorers(g.home_scorers, g.home_team_name_en), ...parseScorers(g.away_scorers, g.away_team_name_en)],
             }))
           )
-
           if (result.ok && result.updated > 0) {
-            console.log(`[LiveScores] Updated ${result.updated} matches, settled ${result.settled} bets`)
+            console.log(`[LiveScores] ${result.updated} updated, ${result.settled} settled`)
           }
         }
 
-        // 4. Refresh the page data
         router.refresh()
-      } catch (e) {
-        console.warn("[LiveScores] Error:", e)
+      } catch {
+        // silent
       }
     }
 
-    // Run immediately, then every N seconds
     tick()
     const id = setInterval(tick, seconds * 1000)
     return () => clearInterval(id)
   }, [router, seconds])
+}
+
+/** Parse scorer strings like `{"J. Quiñones 9'","R. Jiménez 67'"} or "J. Quiñones 9'"` */
+function parseScorers(raw: string | null, team: string): { player: string; minute: number; team: string }[] {
+  if (!raw || raw === "null") return []
+  try {
+    // Handle JSON array format
+    if (raw.startsWith("{")) {
+      // It's a Postgres-style array: {"name min'","name min'"}
+      const cleaned = raw.replace(/[{}"]/g, "")
+      return cleaned.split(",").map(s => {
+        const match = s.trim().match(/^(.+)\s+(\d+)['+]?\d*$/)
+        if (match) return { player: match[1].trim(), minute: parseInt(match[2]), team }
+        return { player: s.trim(), minute: 0, team }
+      }).filter(g => g.player)
+    }
+    // Handle plain string
+    const cleaned = raw.replace(/"/g, "")
+    const match = cleaned.match(/^(.+)\s+(\d+)['+]?\d*$/)
+    if (match) return [{ player: match[1].trim(), minute: parseInt(match[2]), team }]
+    return []
+  } catch {
+    return []
+  }
 }
