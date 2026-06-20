@@ -14,6 +14,7 @@ export async function settleSingleBet(betId: number) {
   const [b] = await db.select().from(bet).where(eq(bet.id, betId)).limit(1)
   if (!b) return { ok: false as const, error: "Pari introuvable." }
   if (b.status !== "pending") return { ok: false as const, error: `Déjà ${b.status === "won" ? "gagné" : "perdu"}.` }
+  if (b.marketType === "combined") return { ok: false as const, error: "Les paris combinés se règlent manuellement via le bouton Modifier." }
 
   let [m] = await db.select().from(match).where(eq(match.id, b.matchId)).limit(1)
   if (!m) return { ok: false as const, error: "Match introuvable." }

@@ -3,7 +3,7 @@ import { bet, ledger, match, matchEvent, profile } from "@/lib/db/schema"
 import { fetchMatchDetail } from "@/lib/providers"
 import { resolveBet, type GoalEvent, type ResolvableMatch } from "@/lib/resolve"
 import { teamsMatch } from "@/lib/team-name"
-import { and, eq, sql } from "drizzle-orm"
+import { and, eq, neq, sql } from "drizzle-orm"
 
 export type SettlementSummary = {
   settled: number
@@ -15,7 +15,7 @@ export async function settlePendingBetsForMatch(matchId: number): Promise<Settle
   const [m] = await db.select().from(match).where(eq(match.id, matchId)).limit(1)
   if (!m || m.status !== "finished") return { settled: 0, won: 0, lost: 0 }
 
-  const pendingBets = await db.select().from(bet).where(and(eq(bet.matchId, matchId), eq(bet.status, "pending")))
+  const pendingBets = await db.select().from(bet).where(and(eq(bet.matchId, matchId), eq(bet.status, "pending"), neq(bet.marketType, "combined")))
   if (pendingBets.length === 0) return { settled: 0, won: 0, lost: 0 }
 
   let events = await db
