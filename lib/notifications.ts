@@ -75,7 +75,13 @@ function pick<T>(arr: T[]): T {
 }
 
 function hourOfDay(): number {
-  return new Date().getHours()
+  const parts = new Intl.DateTimeFormat("fr-FR", {
+    hour: "2-digit",
+    hour12: false,
+    timeZone: "Europe/Paris",
+  }).formatToParts(new Date())
+  const hourPart = parts.find((part) => part.type === "hour")?.value ?? "0"
+  return Number.parseInt(hourPart, 10) || 0
 }
 
 /**

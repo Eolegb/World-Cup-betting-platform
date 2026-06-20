@@ -5,7 +5,7 @@ import { getBetsForMatch } from "@/app/actions/bets"
 import { LiveScore } from "@/components/live-score"
 import { BettingTabs } from "@/components/betting-tabs"
 import { OddsDisplay } from "@/components/odds-display"
-import { LiveBadge, StatusPill } from "@/components/match-bits"
+import { StatusPill } from "@/components/match-bits"
 import { flagForTeam } from "@/lib/flags"
 import { teamColors } from "@/lib/team-colors"
 import { formatMoney, betStatusLabel, formatOdds } from "@/lib/format"
@@ -44,6 +44,7 @@ export default async function MatchDetailPage({
   const awayColors = teamColors(m.awayTeam)
   const homeFlag = flagForTeam(m.homeTeam, m.homeTeamCode)
   const awayFlag = flagForTeam(m.awayTeam, m.awayTeamCode)
+  const kickoffIso = m.kickoff instanceof Date ? m.kickoff.toISOString() : String(m.kickoff)
 
   return (
     <AppShell profile={p}>
@@ -74,10 +75,12 @@ export default async function MatchDetailPage({
                 <span className="text-xl text-muted-foreground">-</span>
                 <span className="font-heading text-3xl tabular text-card-foreground">{m.awayScore}</span>
               </div>
+            ) : isLive ? (
+              <LiveScore homeScore={m.homeScore} awayScore={m.awayScore} kickoff={kickoffIso} isLive />
             ) : (
               <div className="flex flex-col items-center gap-1">
                 <span className="font-heading text-2xl tabular text-muted-foreground">VS</span>
-                {canBet && <Countdown kickoff={m.kickoff instanceof Date ? m.kickoff.toISOString() : String(m.kickoff)} />}
+                {canBet && <Countdown kickoff={kickoffIso} />}
                 {!canBet && !isFinished && <span className="text-xs text-live">En cours</span>}
               </div>
             )}
@@ -140,7 +143,7 @@ export default async function MatchDetailPage({
               {allBets.slice(0, 10).map((b: any) => (
                 <div key={b.betId ?? b.id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-2">
                   <div className="flex items-center gap-3">
-                    <Avatar name={b.displayName ?? "?"} size="sm" color={b.avatarColor} />
+                    <Avatar name={b.displayName ?? "?"} size="sm" avatarColor={b.avatarColor} />
                     <div>
                       <p className="text-sm font-medium text-card-foreground">{b.displayName}</p>
                       <p className="text-xs text-muted-foreground">

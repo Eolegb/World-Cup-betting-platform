@@ -50,7 +50,7 @@ export function FetchScoreButton({ matchId, externalId, homeTeam, awayTeam }: {
         const isFinished = status === "finished"
         toast.success(
           isFinished
-            ? `${homeTeam} ${homeScore}-${awayScore} ${awayTeam} · ${goals.length} buteurs · ${detail.status}`
+            ? `${homeTeam} ${homeScore}-${awayScore} ${awayTeam} · ${goals.length} buteurs · ${saved.settled} paris résolus`
             : `${homeTeam} vs ${awayTeam} · ${detail.status} (pas fini)`
         )
       } else {

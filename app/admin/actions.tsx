@@ -40,7 +40,7 @@ export function AdminActions() {
     try {
       const data = await triggerSyncAction()
       if (data.ok) {
-        toast.success(`Sync terminée : ${data.results.join(" | ")}`)
+        toast.success(`Sync terminée : ${(data.results ?? []).join(" | ")}`)
       } else {
         toast.error(data.error ?? "Échec de la synchronisation")
       }

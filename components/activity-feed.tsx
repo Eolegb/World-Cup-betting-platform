@@ -3,7 +3,7 @@ import { activityFeed, profile, user } from "@/lib/db/schema"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { desc, eq } from "drizzle-orm"
+import { desc, eq, ne } from "drizzle-orm"
 
 function relativeTime(date: Date): string {
   const now = Date.now()
@@ -53,6 +53,7 @@ async function getRecentActivity(): Promise<ActivityRow[]> {
     .from(activityFeed)
     .innerJoin(profile, eq(activityFeed.userId, profile.userId))
     .innerJoin(user, eq(activityFeed.userId, user.id))
+    .where(ne(activityFeed.type, "push_reminder"))
     .orderBy(desc(activityFeed.createdAt))
     .limit(20)
 }

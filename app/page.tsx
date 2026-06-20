@@ -4,7 +4,6 @@ import MatchCard from "@/components/match-card"
 import { ActivityFeed } from "@/components/activity-feed"
 import { Avatar } from "@/components/avatar"
 import { formatMoney } from "@/lib/format"
-import { LiveScorePoller } from "@/components/live-score-poller"
 import { Radio, CalendarClock, Flag, Zap, Clock } from "lucide-react"
 
 export const dynamic = "force-dynamic"
@@ -23,7 +22,7 @@ export default async function DashboardPage() {
 
   const upcoming = matches.filter((m) => m.status === "scheduled")
   const finished = matches.filter((m) => m.status === "finished")
-  const inProgress = upcoming.filter((m) => new Date(m.kickoff).getTime() < Date.now())
+  const inProgress = matches.filter((m) => m.status === "live")
   const greeting = getGreeting()
 
   // Next match countdown
@@ -32,8 +31,6 @@ export default async function DashboardPage() {
 
   return (
     <AppShell profile={profile}>
-      <LiveScorePoller />
-
       <div className="grid gap-6 lg:grid-cols-[1fr_300px]">
         <div className="min-w-0 space-y-6">
           {/* Welcome bento */}

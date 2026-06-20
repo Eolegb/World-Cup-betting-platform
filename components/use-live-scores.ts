@@ -33,6 +33,14 @@ export function useLiveScores(seconds = 45) {
 
     async function tick() {
       try {
+        const syncRes = await fetch("/api/sync/live")
+        if (syncRes.ok) {
+          const syncData = await syncRes.json()
+          if (!syncData.ok) {
+            console.warn("[LiveScores] Sync/live failed:", syncData.error)
+          }
+        }
+
         const res = await fetch(API_URL)
         if (!res.ok) return
         const data = await res.json()
@@ -58,10 +66,10 @@ export function useLiveScores(seconds = 45) {
             console.log(`[LiveScores] ${result.updated} updated, ${result.settled} settled`)
           }
         }
-
-        router.refresh()
       } catch {
         // silent
+      } finally {
+        router.refresh()
       }
     }
 

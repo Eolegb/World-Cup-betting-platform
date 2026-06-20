@@ -44,9 +44,13 @@ export async function placeBet(input: PlaceBetInput) {
 
   try {
     const result = await db.transaction(async (tx) => {
-      const [m] = await tx.select({ status: match.status }).from(match).where(eq(match.id, input.matchId)).limit(1)
+      const [m] = await tx
+        .select({ status: match.status, kickoff: match.kickoff })
+        .from(match)
+        .where(eq(match.id, input.matchId))
+        .limit(1)
       if (!m) throw new Error("MATCH_NOT_FOUND")
-      if (m.status !== "scheduled") throw new Error("MATCH_STARTED")
+      if (m.status !== "scheduled" || new Date(m.kickoff).getTime() <= Date.now()) throw new Error("MATCH_STARTED")
 
       const rows = await tx.select().from(profile).where(eq(profile.userId, userId)).limit(1)
       if (!rows.length) throw new Error("PROFILE_MISSING")
@@ -161,12 +165,12 @@ export async function placeCombinedBet(bets: PlaceBetInput[], totalStake: number
   try {
     const result = await db.transaction(async (tx) => {
       const matchIds = [...new Set(bets.map((b) => b.matchId))]
-      const matches = await tx.select({ id: match.id, status: match.status }).from(match).where(inArray(match.id, matchIds))
-      const statusById = new Map(matches.map((m) => [m.id, m.status]))
+      const matches = await tx.select({ id: match.id, status: match.status, kickoff: match.kickoff }).from(match).where(inArray(match.id, matchIds))
+      const statusById = new Map(matches.map((m) => [m.id, m]))
       for (const b of bets) {
         const s = statusById.get(b.matchId)
         if (!s) throw new Error("MATCH_NOT_FOUND")
-        if (s !== "scheduled") throw new Error("MATCH_STARTED")
+        if (s.status !== "scheduled" || new Date(s.kickoff).getTime() <= Date.now()) throw new Error("MATCH_STARTED")
       }
 
       const rows = await tx.select().from(profile).where(eq(profile.userId, userId)).limit(1)

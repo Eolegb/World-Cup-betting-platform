@@ -1,5 +1,5 @@
 import { db } from "@/lib/db"
-import { match, matchEvent, bet, profile, ledger } from "@/lib/db/schema"
+import { match, matchEvent } from "@/lib/db/schema"
 import {
   fetchFixtures,
   fetchLiveFixtures,
@@ -9,8 +9,8 @@ import {
   type FootballDataEvent,
 } from "@/lib/providers"
 import { updateAllOdds } from "@/lib/odds-service"
-import { resolveBet, type GoalEvent, type ResolvableMatch } from "@/lib/resolve"
-import { and, eq, lt, sql } from "drizzle-orm"
+import { settlePendingBetsForMatch } from "@/lib/settle-match"
+import { and, eq, lt, or } from "drizzle-orm"
 
 let syncing = false
 
@@ -39,7 +39,7 @@ export async function runSync(): Promise<{ ok: boolean; results?: string[]; erro
 
     // Detect finished matches (kickoff + 95 min, still "scheduled")
     const cutoff = new Date(Date.now() - 95 * 60 * 1000)
-    const candidates = await db.select().from(match).where(and(eq(match.status, "scheduled"), lt(match.kickoff, cutoff)))
+    const candidates = await db.select().from(match).where(and(or(eq(match.status, "scheduled"), eq(match.status, "live")), lt(match.kickoff, cutoff)))
 
     let eventsCount = 0
     let settledCount = 0
@@ -61,7 +61,8 @@ export async function runSync(): Promise<{ ok: boolean; results?: string[]; erro
           eventsCount++
         }
       }
-      settledCount += await settleMatch(m.id)
+      const summary = await settlePendingBetsForMatch(m.id)
+      settledCount += summary.settled
     }
     if (eventsCount > 0) results.push(`Synced ${eventsCount} events`)
     if (settledCount > 0) results.push(`Settled ${settledCount} bets`)
@@ -69,7 +70,8 @@ export async function runSync(): Promise<{ ok: boolean; results?: string[]; erro
     // Also settle any already-finished matches with pending bets
     const finishedMatches = await db.select().from(match).where(eq(match.status, "finished"))
     for (const m of finishedMatches) {
-      settledCount += await settleMatch(m.id)
+      const summary = await settlePendingBetsForMatch(m.id)
+      settledCount += summary.settled
     }
 
     // Sync odds
@@ -93,6 +95,10 @@ function mapStatus(fdStatus: string): string {
   switch (fdStatus) {
     case "FINISHED":
       return "finished"
+    case "LIVE":
+    case "IN_PLAY":
+    case "PAUSED":
+      return "live"
     default:
       return "scheduled" // LIVE, IN_PLAY, PAUSED, TIMED, SCHEDULED → all "scheduled"
   }
@@ -190,70 +196,4 @@ async function syncEvents(matchId: number, apiEvents: FootballDataEvent[]) {
       })
       .onConflictDoNothing()
   }
-}
-
-async function settleMatch(m: typeof match.$inferSelect): Promise<number> {
-  const pendingBets = await db
-    .select()
-    .from(bet)
-    .where(and(eq(bet.matchId, m.id), eq(bet.status, "pending")))
-
-  if (pendingBets.length === 0) return 0
-
-  const events = await db
-    .select()
-    .from(matchEvent)
-    .where(and(eq(matchEvent.matchId, m.id), eq(matchEvent.type, "goal")))
-    .orderBy(matchEvent.minute)
-
-  const goals: GoalEvent[] = events.map((e) => ({
-    player: e.player,
-    team: e.team === m.homeTeam ? "home" : "away",
-    minute: e.minute ?? 0,
-  }))
-
-  const resolvable: ResolvableMatch = {
-    homeTeam: m.homeTeam,
-    awayTeam: m.awayTeam,
-    homeScore: m.homeScore,
-    awayScore: m.awayScore,
-    goals,
-  }
-
-  let settled = 0
-  for (const b of pendingBets) {
-    const result = resolveBet(resolvable, {
-      marketType: b.marketType,
-      selection: b.selection as Record<string, unknown>,
-      minuteFrom: b.minuteFrom,
-      minuteTo: b.minuteTo,
-    })
-
-    const payout = result === "won" ? b.potentialPayout : 0
-    const newStatus = result === "won" ? "won" : "lost"
-
-    await db.transaction(async (tx) => {
-      await tx.update(bet).set({ status: newStatus, payout, settledAt: new Date() }).where(eq(bet.id, b.id))
-
-      if (payout > 0) {
-        const [p] = await tx
-          .update(profile)
-          .set({ balance: sql`${profile.balance} + ${payout}`, balanceBackup: sql`${profile.balance}` })
-          .where(eq(profile.userId, b.userId))
-          .returning()
-
-        await tx.insert(ledger).values({
-          userId: b.userId,
-          betId: b.id,
-          amount: payout,
-          balanceAfter: p.balance,
-          reason: `Gain: ${b.label}`,
-        })
-      }
-    })
-
-    settled++
-  }
-
-  return settled
 }

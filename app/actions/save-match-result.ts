@@ -3,6 +3,7 @@
 import { db } from "@/lib/db"
 import { match, matchEvent } from "@/lib/db/schema"
 import { requireAdmin } from "@/lib/session"
+import { settlePendingBetsForMatch } from "@/lib/settle-match"
 import { eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
 
@@ -37,7 +38,9 @@ export async function saveMatchResult(
     stored++
   }
 
+  const summary = status === "finished" ? await settlePendingBetsForMatch(matchId) : { settled: 0, won: 0, lost: 0 }
+
   revalidatePath("/admin")
   revalidatePath("/")
-  return { ok: true as const, goals: stored }
+  return { ok: true as const, goals: stored, ...summary }
 }

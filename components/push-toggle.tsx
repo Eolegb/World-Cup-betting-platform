@@ -5,8 +5,6 @@ import { subscribeToPush, unsubscribeFromPush } from "@/app/actions/push"
 import { toast } from "sonner"
 import { Bell, BellOff } from "lucide-react"
 
-const VAPID_PUBLIC = "BKFfcYspSlvuy4Jv4HPFCYrNs4Xq6WO45m2x4_3atMXn3XtH-UThSpSE56GAH6wbzhOaRGHRLYk26v-9wWsoirI"
-
 function urlBase64ToUint8Array(base64String: string) {
   const padding = "=".repeat((4 - (base64String.length % 4)) % 4)
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/")
@@ -21,6 +19,7 @@ export function PushNotificationToggle() {
   const [subscribed, setSubscribed] = useState(false)
   const [loading, setLoading] = useState(false)
   const [permission, setPermission] = useState<NotificationPermission | "">("")
+  const [publicKey, setPublicKey] = useState<string | null>(null)
 
   useEffect(() => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) return
@@ -34,6 +33,14 @@ export function PushNotificationToggle() {
     }).catch(() => {
       // SW not ready yet, will retry on click
     })
+    fetch("/api/push/public-key")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.key) setPublicKey(String(data.key))
+      })
+      .catch(() => {
+        // keep fallback null
+      })
   }, [])
 
   async function toggle() {
@@ -69,10 +76,16 @@ export function PushNotificationToggle() {
         }
 
         // Now subscribe to push
+        if (!publicKey) {
+          toast.error("La clé push n'est pas disponible. Vérifie la configuration serveur.")
+          setLoading(false)
+          return
+        }
+
         const reg = await navigator.serviceWorker.ready
         const sub = await reg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC),
+          applicationServerKey: urlBase64ToUint8Array(publicKey),
         })
         const json = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } }
         await subscribeToPush(json)

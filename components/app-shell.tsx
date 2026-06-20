@@ -5,6 +5,8 @@ import { db } from "@/lib/db"
 import { profile } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { AppNav } from "@/components/app-nav"
+import { LiveScorePoller } from "@/components/live-score-poller"
+import { PushReminderPoller } from "@/components/push-reminder-poller"
 
 /**
  * Loads the current session + profile, redirecting to /sign-in if not authed.
@@ -38,6 +40,8 @@ export async function AppShell({
   return (
     <div className="min-h-svh bg-background">
       <AppNav displayName={p.displayName} balance={p.balance} isAdmin={p.isAdmin} image={p.image} />
+      <LiveScorePoller />
+      <PushReminderPoller />
       <main className="mx-auto max-w-5xl px-4 py-6">{children}</main>
     </div>
   )

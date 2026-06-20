@@ -1,21 +1,73 @@
 import { NextResponse } from "next/server"
 import { db } from "@/lib/db"
-import { match, matchEvent, bet, profile, ledger } from "@/lib/db/schema"
+import { match, matchEvent } from "@/lib/db/schema"
 import { fetchMatchDetail } from "@/lib/providers"
-import { resolveBet, type GoalEvent, type ResolvableMatch } from "@/lib/resolve"
-import { and, eq, lt, sql } from "drizzle-orm"
+import { settlePendingBetsForMatch } from "@/lib/settle-match"
+import { getUserId } from "@/lib/session"
+import { and, eq, lt, or } from "drizzle-orm"
 
 export const dynamic = "force-dynamic"
 
-export async function GET() {
-  try {
-    // Find scheduled matches that should be finished (kickoff + 95 min ago)
-    const cutoff = new Date(Date.now() - 95 * 60 * 1000)
-    const candidates = await db.select().from(match).where(and(eq(match.status, "scheduled"), lt(match.kickoff, cutoff)))
+function isCronRequest(req: Request): boolean {
+  const expected = process.env.CRON_SECRET ?? "cron-secret-change-me"
+  const authHeader = req.headers.get("authorization")
+  if (authHeader === `Bearer ${expected}`) return true
 
+  const url = new URL(req.url)
+  return url.searchParams.get("secret") === expected
+}
+
+function calculateElapsed(kickoff: Date): number {
+  const diffMs = Date.now() - kickoff.getTime()
+  if (diffMs <= 0) return 0
+  return Math.min(Math.floor(diffMs / 60000), 120)
+}
+
+async function authorize(req: Request): Promise<boolean> {
+  if (isCronRequest(req)) return true
+  try {
+    await getUserId()
+    return true
+  } catch {
+    return false
+  }
+}
+
+export async function GET(req: Request) {
+  try {
+    if (!(await authorize(req))) {
+      return NextResponse.json({ ok: false, error: "Unauthorized" }, { status: 401 })
+    }
+
+    const now = new Date()
     let updated = 0
     let eventsAdded = 0
     let betsSettled = 0
+
+    // 1) Mark matches that have started as live so bets close immediately.
+    const startedMatches = await db
+      .select({ id: match.id, kickoff: match.kickoff })
+      .from(match)
+      .where(and(eq(match.status, "scheduled"), lt(match.kickoff, now)))
+
+    for (const m of startedMatches) {
+      await db
+        .update(match)
+        .set({
+          status: "live",
+          elapsed: calculateElapsed(m.kickoff),
+          lastSyncedAt: now,
+        })
+        .where(eq(match.id, m.id))
+      updated++
+    }
+
+    // 2) Finish matches that have likely ended.
+    const cutoff = new Date(Date.now() - 95 * 60 * 1000)
+    const candidates = await db
+      .select()
+      .from(match)
+      .where(and(or(eq(match.status, "scheduled"), eq(match.status, "live")), lt(match.kickoff, cutoff)))
 
     for (const m of candidates) {
       if (!m.externalId) continue
@@ -23,79 +75,57 @@ export async function GET() {
       const detail = await fetchMatchDetail(m.externalId)
       if (!detail) continue
 
-      // Consider finished if API says FINISHED, OR if score exists and 95+ min passed
-      const isFinished = detail.status === "FINISHED" ||
+      const isFinished =
+        detail.status === "FINISHED" ||
         (detail.score.fullTime.home != null && detail.score.fullTime.away != null)
 
       if (!isFinished) continue
 
       const homeScore = detail.score.fullTime.home ?? 0
       const awayScore = detail.score.fullTime.away ?? 0
-
-      await db.update(match).set({ status: "finished", homeScore, awayScore, elapsed: 90, lastSyncedAt: new Date() }).where(eq(match.id, m.id))
+      await db
+        .update(match)
+        .set({
+          status: "finished",
+          homeScore,
+          awayScore,
+          elapsed: 90,
+          lastSyncedAt: now,
+        })
+        .where(eq(match.id, m.id))
       updated++
 
-      // Store goals
       if (detail.goals) {
         for (const g of detail.goals) {
-          await db.insert(matchEvent).values({ matchId: m.id, type: "goal", detail: g.type ?? "REGULAR", player: g.scorer?.name ?? null, team: g.team?.name ?? "", minute: g.minute, extraMinute: g.extraTime }).onConflictDoNothing()
+          await db
+            .insert(matchEvent)
+            .values({
+              matchId: m.id,
+              type: "goal",
+              detail: g.type ?? "REGULAR",
+              player: g.scorer?.name ?? null,
+              team: g.team?.name ?? "",
+              minute: g.minute,
+              extraMinute: g.extraTime,
+            })
+            .onConflictDoNothing()
           eventsAdded++
         }
       }
 
-      // Settle bets for this match
-      betsSettled += await settleMatch(m.id)
+      const summary = await settlePendingBetsForMatch(m.id)
+      betsSettled += summary.settled
     }
 
-    // Also settle ALL finished matches that still have pending bets (catch-up)
+    // 3) Catch up any finished matches that still have pending bets.
     const allFinished = await db.select({ id: match.id }).from(match).where(eq(match.status, "finished"))
     for (const m of allFinished) {
-      betsSettled += await settleMatch(m.id)
+      const summary = await settlePendingBetsForMatch(m.id)
+      betsSettled += summary.settled
     }
 
     return NextResponse.json({ ok: true, updated, eventsAdded, betsSettled })
   } catch (e) {
     return NextResponse.json({ ok: false, error: String(e) }, { status: 500 })
   }
-}
-
-async function settleMatch(matchId: number): Promise<number> {
-  const [m] = await db.select().from(match).where(eq(match.id, matchId)).limit(1)
-  if (!m || m.status !== "finished") return 0
-
-  const pendingBets = await db.select().from(bet).where(and(eq(bet.matchId, m.id), eq(bet.status, "pending")))
-  if (pendingBets.length === 0) return 0
-
-  const events = await db.select().from(matchEvent).where(and(eq(matchEvent.matchId, m.id), eq(matchEvent.type, "goal"))).orderBy(matchEvent.minute)
-  const goals: GoalEvent[] = events.map(e => ({ player: e.player, team: e.team === m.homeTeam ? "home" as const : "away" as const, minute: e.minute ?? 0 }))
-
-  // If no events in DB, try API one last time
-  if (goals.length === 0 && m.externalId) {
-    const detail = await fetchMatchDetail(m.externalId)
-    if (detail?.goals) {
-      for (const g of detail.goals) {
-        goals.push({ player: g.scorer?.name ?? null, team: g.team?.name === m.homeTeam ? "home" : "away", minute: g.minute })
-        await db.insert(matchEvent).values({ matchId: m.id, type: "goal", detail: g.type ?? "REGULAR", player: g.scorer?.name ?? null, team: g.team?.name ?? "", minute: g.minute, extraMinute: g.extraTime }).onConflictDoNothing()
-      }
-    }
-  }
-
-  const resolvable: ResolvableMatch = { homeTeam: m.homeTeam, awayTeam: m.awayTeam, homeScore: m.homeScore, awayScore: m.awayScore, goals }
-
-  let settled = 0
-  for (const b of pendingBets) {
-    const result = resolveBet(resolvable, { marketType: b.marketType, selection: b.selection as Record<string, unknown>, minuteFrom: b.minuteFrom, minuteTo: b.minuteTo })
-    const payout = result === "won" ? b.potentialPayout : 0
-    const newStatus = result === "won" ? "won" : "lost"
-
-    await db.transaction(async tx => {
-      await tx.update(bet).set({ status: newStatus, payout, settledAt: new Date() }).where(eq(bet.id, b.id))
-      if (payout > 0) {
-        const [p] = await tx.update(profile).set({ balance: sql`${profile.balance} + ${payout}`, balanceBackup: sql`${profile.balance}` }).where(eq(profile.userId, b.userId)).returning()
-        await tx.insert(ledger).values({ userId: b.userId, betId: b.id, amount: payout, balanceAfter: p.balance, reason: `Gain: ${b.label}` })
-      }
-    })
-    settled++
-  }
-  return settled
 }

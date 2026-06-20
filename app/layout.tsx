@@ -1,20 +1,8 @@
 import { Analytics } from "@vercel/analytics/next"
 import type { Metadata } from "next"
-import { Geist, Geist_Mono, Archivo } from "next/font/google"
 import { Toaster } from "@/components/ui/sonner"
 import { ServiceWorkerRegister } from "@/components/service-worker-register"
 import "./globals.css"
-
-const geistSans = Geist({ variable: "--font-geist-sans", subsets: ["latin"] })
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-})
-const archivo = Archivo({
-  variable: "--font-archivo",
-  subsets: ["latin"],
-  weight: ["700", "800", "900"],
-})
 
 export const metadata: Metadata = {
   title: "BetRod",
@@ -38,7 +26,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="fr" className={`${geistSans.variable} ${geistMono.variable} ${archivo.variable} bg-background`}>
+    <html lang="fr" className="bg-background">
       <body className="font-sans antialiased">
         {children}
         <ServiceWorkerRegister />
