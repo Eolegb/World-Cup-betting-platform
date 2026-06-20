@@ -46,7 +46,7 @@ export function OverrideBetButton({ betId, currentStatus }: { betId: number; cur
         {loading ? "..." : "Modifier"}
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1 z-50 rounded-lg border border-border bg-card shadow-lg py-1 min-w-[100px]">
+        <div className="absolute right-0 top-full mt-1 z-[100] rounded-lg border border-border bg-popover shadow-xl py-1 min-w-[110px]">
           {OPTIONS.map(o => (
             <button
               key={o.value}
