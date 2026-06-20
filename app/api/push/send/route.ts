@@ -4,7 +4,6 @@ import { activityFeed, match, profile, pushSubscription } from "@/lib/db/schema"
 import { eq, and, gt, lt, inArray } from "drizzle-orm"
 import webpush from "web-push"
 import { pickNotification } from "@/lib/notifications"
-import { getUserId } from "@/lib/session"
 
 export const dynamic = "force-dynamic"
 
@@ -64,15 +63,9 @@ async function loadMatches(): Promise<MatchRow[]> {
 
 async function loadTargetUsers(cronMode: boolean): Promise<{ userId: string; displayName: string }[]> {
   if (!cronMode) {
-    const userId = await getUserId()
-    const [row] = await db
-      .select({ userId: profile.userId, displayName: profile.displayName })
-      .from(profile)
-      .where(eq(profile.userId, userId))
-      .limit(1)
-    return row ? [row] : []
+    // Browser poller: send to all subscribed users (not just current user)
+    return db.select({ userId: profile.userId, displayName: profile.displayName }).from(profile)
   }
-
   return db.select({ userId: profile.userId, displayName: profile.displayName }).from(profile)
 }
 

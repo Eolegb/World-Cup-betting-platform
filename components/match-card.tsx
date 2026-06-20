@@ -5,29 +5,32 @@ import Link from "next/link"
 import type { MatchRow } from "@/lib/queries"
 import { flagForTeam } from "@/lib/flags"
 import { teamColors } from "@/lib/team-colors"
-import { statusLabel } from "@/lib/format"
-import { kickoffLabelShort, utcDate } from "@/lib/datetime"
-import { Clock, ChevronRight } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { utcDate } from "@/lib/datetime"
+import { Clock } from "lucide-react"
 import { LiveBadge } from "@/components/match-bits"
-import { OddsDisplay } from "@/components/odds-display"
+
+function formatStage(s: string | null): string {
+  if (!s) return "Coupe du Monde 2026"
+  return s
+    .replace(/_/g, " ")
+    .replace(/GROUP\s*/i, "Groupe ")
+    .replace(/R32/i, "32es de finale")
+    .replace(/R16/i, "8es de finale")
+    .replace(/QF/i, "Quarts de finale")
+    .replace(/SF/i, "Demi-finales")
+    .replace(/FINAL/i, "Finale")
+    .replace(/3RD/i, "Petite finale")
+}
 
 function MatchCountdown({ kickoff }: { kickoff: Date | string }) {
   const [now, setNow] = useState(() => Date.now())
-
-  useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000)
-    return () => clearInterval(id)
-  }, [])
-
+  useEffect(() => { const id = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(id) }, [])
   const target = utcDate(kickoff).getTime()
   const diff = target - now
   if (diff <= 0) return <span className="text-xs text-muted-foreground">Coup d&apos;envoi imminent</span>
-
   const days = Math.floor(diff / 86400000)
   const hours = Math.floor((diff % 86400000) / 3600000)
   const minutes = Math.floor((diff % 3600000) / 60000)
-
   if (days > 0) return <span className="text-xs tabular text-muted-foreground">{days}j {hours}h {minutes}min</span>
   return <span className="flex items-center gap-1.5 text-xs font-medium tabular text-muted-foreground"><Clock className="h-3.5 w-3.5" />{String(hours).padStart(2, "0")}h{String(minutes).padStart(2, "0")}m</span>
 }
@@ -52,28 +55,12 @@ export default function MatchCard({ match: m }: { match: MatchRow }) {
       href={`/match/${m.id}`}
       className="group block overflow-hidden rounded-2xl border border-border/60 glass hover-lift hover-glow interactive"
     >
-      <div
-        className="h-1.5 w-full"
-        style={{ background: `linear-gradient(90deg, ${colors.primary}, ${colors.secondary})` }}
-      />
-
+      <div className="h-1.5 w-full" style={{ background: `linear-gradient(90deg, ${colors.primary}, ${colors.secondary})` }} />
       <div className="p-4">
         <div className="mb-3 flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">{m.stage ?? "Coupe du Monde 2026"}</span>
-          {isLive ? (
-            <LiveBadge kickoff={new Date(m.kickoff).toISOString()} />
-          ) : (
-            <span
-              className={cn(
-                "rounded-full px-2 py-0.5 text-xs font-medium",
-                m.status === "finished"
-                  ? "bg-muted text-muted-foreground"
-                  : "bg-secondary text-secondary-foreground",
-              )}
-            >
-              {statusLabel(m.status)}
-            </span>
-          )}
+          <span className="text-xs text-muted-foreground">{formatStage(m.stage)}</span>
+          {isLive && <LiveBadge kickoff={new Date(m.kickoff).toISOString()} />}
+          {m.status === "finished" && <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">Terminé</span>}
         </div>
 
         <div className="flex items-center justify-between gap-3">
@@ -91,24 +78,13 @@ export default function MatchCard({ match: m }: { match: MatchRow }) {
           </div>
         </div>
 
-        {m.status === "scheduled" && (
-          <div className="mt-3 border-t border-border/30 pt-3">
-            <OddsDisplay matchId={m.id} status={m.status} homeTeam={m.homeTeam} awayTeam={m.awayTeam} />
-          </div>
-        )}
-
-        <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
+        <div className="mt-3 flex items-center justify-between border-t border-border/30 pt-3">
           {m.status === "finished" ? (
             <span className="text-xs text-muted-foreground">Résultat final</span>
           ) : m.status === "scheduled" ? (
             <MatchCountdown kickoff={m.kickoff} />
-          ) : (
-            <span className="text-xs text-muted-foreground">{kickoffLabelShort(m.kickoff)}</span>
-          )}
-          <span className="flex items-center gap-1 text-xs font-medium text-primary">
-            {m.status === "finished" ? "Voir les paris" : "Parier"}
-            <ChevronRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
-          </span>
+          ) : null}
+          <span className="text-xs text-primary opacity-0 group-hover:opacity-100 transition-opacity">→</span>
         </div>
       </div>
     </Link>
