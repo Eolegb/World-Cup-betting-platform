@@ -9,6 +9,7 @@ import { StatusPill } from "@/components/match-bits"
 import { flagForTeam } from "@/lib/flags"
 import { teamColors } from "@/lib/team-colors"
 import { formatMoney, betStatusLabel, formatOdds } from "@/lib/format"
+import { formatStage } from "@/lib/utils"
 import { Avatar } from "@/components/avatar"
 import { MapPin, Calendar, Clock, Activity, Users } from "lucide-react"
 import { Countdown } from "@/components/countdown"
@@ -58,7 +59,7 @@ export default async function MatchDetailPage({
         <div className="bg-card p-3 sm:p-6">
           <div className="mb-3 flex items-center justify-between">
             <span className="inline-flex items-center rounded-full border border-border/60 bg-secondary px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
-              {m.stage ?? "Coupe du Monde 2026"}
+              {formatStage(m.stage)}
             </span>
             <StatusPill status={m.status} hasStarted={hasStarted} />
           </div>

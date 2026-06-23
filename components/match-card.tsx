@@ -6,21 +6,9 @@ import type { MatchRow } from "@/lib/queries"
 import { flagForTeam } from "@/lib/flags"
 import { teamColors } from "@/lib/team-colors"
 import { utcDate } from "@/lib/datetime"
+import { formatStage } from "@/lib/utils"
 import { Clock } from "lucide-react"
 import { LiveBadge } from "@/components/match-bits"
-
-function formatStage(s: string | null): string {
-  if (!s) return "Coupe du Monde 2026"
-  return s
-    .replace(/_/g, " ")
-    .replace(/GROUP\s*/i, "Groupe ")
-    .replace(/R32/i, "32es de finale")
-    .replace(/R16/i, "8es de finale")
-    .replace(/QF/i, "Quarts de finale")
-    .replace(/SF/i, "Demi-finales")
-    .replace(/FINAL/i, "Finale")
-    .replace(/3RD/i, "Petite finale")
-}
 
 function MatchCountdown({ kickoff }: { kickoff: Date | string }) {
   const [now, setNow] = useState(() => Date.now())
@@ -55,17 +43,19 @@ export default function MatchCard({ match: m }: { match: MatchRow }) {
       href={`/match/${m.id}`}
       className="group block overflow-hidden rounded-2xl border border-border/60 glass hover-lift hover-glow interactive"
     >
-      <div className="h-1.5 w-full" style={{ background: `linear-gradient(90deg, ${colors.primary}, ${colors.secondary})` }} />
+      <div className="h-[3px] w-full" style={{ background: `linear-gradient(90deg, ${colors.primary}, ${colors.secondary})` }} />
       <div className="p-4">
         <div className="mb-3 flex items-center justify-between">
-          <span className="text-xs text-muted-foreground">{formatStage(m.stage)}</span>
+          <span className="inline-flex items-center rounded-full border border-border/60 bg-secondary px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+            {formatStage(m.stage)}
+          </span>
           {isLive && <LiveBadge kickoff={new Date(m.kickoff).toISOString()} />}
           {m.status === "finished" && <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">Terminé</span>}
         </div>
 
         <div className="flex items-center justify-between gap-3">
           <div className="flex flex-1 items-center gap-2.5 min-w-0">
-            <span className="shrink-0 text-lg leading-none">{flagForTeam(m.homeTeam, m.homeTeamCode)}</span>
+            <span className="shrink-0 text-2xl leading-none">{flagForTeam(m.homeTeam, m.homeTeamCode)}</span>
             <span className="truncate font-medium text-card-foreground">{m.homeTeam}</span>
           </div>
           {showScore ? <ScoreBlock home={m.homeScore} away={m.awayScore} /> : null}
@@ -73,7 +63,7 @@ export default function MatchCard({ match: m }: { match: MatchRow }) {
 
         <div className="mt-2 flex items-center justify-between gap-3">
           <div className="flex flex-1 items-center gap-2.5 min-w-0">
-            <span className="shrink-0 text-lg leading-none">{flagForTeam(m.awayTeam, m.awayTeamCode)}</span>
+            <span className="shrink-0 text-2xl leading-none">{flagForTeam(m.awayTeam, m.awayTeamCode)}</span>
             <span className="truncate font-medium text-card-foreground">{m.awayTeam}</span>
           </div>
         </div>
