@@ -10,6 +10,7 @@ import { flagForTeam } from "@/lib/flags"
 import { teamColors } from "@/lib/team-colors"
 import { formatMoney, betStatusLabel, formatOdds } from "@/lib/format"
 import { formatStage } from "@/lib/utils"
+import { kickoffDate, kickoffTime } from "@/lib/datetime"
 import { Avatar } from "@/components/avatar"
 import { AdminFetchOddsButton } from "@/components/admin-fetch-odds-button"
 import { LineupPoller } from "@/components/lineup-poller"
@@ -100,11 +101,11 @@ export default async function MatchDetailPage({
           <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5" />
-              {new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(new Date(m.kickoff))}
+              {kickoffDate(m.kickoff)}
             </span>
             <span className="flex items-center gap-1">
               <Clock className="h-3.5 w-3.5" />
-              {new Intl.DateTimeFormat("fr-FR", { hour: "2-digit", minute: "2-digit" }).format(new Date(m.kickoff))}
+              {kickoffTime(m.kickoff)}
             </span>
             {m.venue && (
               <span className="flex items-center gap-1">

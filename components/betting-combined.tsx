@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { formatMoney, formatOdds } from "@/lib/format"
+import { kickoffTime } from "@/lib/datetime"
 import { flagForTeam } from "@/lib/flags"
 import { placeCombinedBet } from "@/app/actions/bets"
 import { Coins, Layers, X, ChevronDown } from "lucide-react"
@@ -221,7 +222,7 @@ export function BettingCombined({ balance }: { balance: number }) {
                     <span className="text-sm font-medium">{shortTeam(m.awayTeam)}</span>
                     <span className="text-xl">{awayFlag}</span>
                     <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
-                      {new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(m.kickoff))}
+                      {kickoffTime(m.kickoff)}
                     </span>
                     <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted-foreground transition", isExpanded && "rotate-180")} />
                   </button>

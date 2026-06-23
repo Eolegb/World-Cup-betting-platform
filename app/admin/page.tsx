@@ -3,6 +3,7 @@ import { getMatches, getAllBetsAdmin } from "@/lib/queries"
 import { db } from "@/lib/db"
 import { user as userTable, profile } from "@/lib/db/schema"
 import { Users, Ticket, Trophy, Activity, Settings2, RefreshCw } from "lucide-react"
+import { kickoffDate, kickoffTime } from "@/lib/datetime"
 import { redirect } from "next/navigation"
 import { AdminActions } from "./actions"
 import { ResetBalancesButton } from "@/components/reset-balances-button"
@@ -272,7 +273,7 @@ function MatchAdminRow({
         </div>
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-[11px] text-muted-foreground">
-            {new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(m.kickoff))}
+            {kickoffDate(m.kickoff)} {kickoffTime(m.kickoff)}
           </span>
           {pendingBets > 0 && (
             <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">

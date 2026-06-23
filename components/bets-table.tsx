@@ -3,6 +3,7 @@
 import { useState, useMemo } from "react"
 import { OverrideBetButton } from "@/components/override-bet-button"
 import { formatMoney, formatOdds } from "@/lib/format"
+import { kickoffDate, kickoffTime } from "@/lib/datetime"
 import { Ticket, Download, X, ChevronDown } from "lucide-react"
 
 type BetRow = {
@@ -203,7 +204,7 @@ export function BetsTable({ bets: allBets, totalBets, wonCount, lostCount, pendi
                       {b.awayTeam}
                     </span>
                     <span className="text-[11px] text-muted-foreground ml-auto shrink-0">
-                      {new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(b.createdAt))}
+                      {kickoffDate(b.createdAt)} {kickoffTime(b.createdAt)}
                     </span>
                   </div>
 
