@@ -59,6 +59,22 @@ export function clampOdds(odds: number): number {
   return Math.max(1.01, Math.round(odds * 100) / 100)
 }
 
+const CORRECT_SCORE_ODDS: Record<string, number> = {
+  "0-0": 9.5,  "0-1": 7.5,  "0-2": 11,  "0-3": 21,  "0-4": 45,  "0-5": 100,
+  "1-0": 6.5,  "1-1": 6,    "1-2": 9,   "1-3": 17,  "1-4": 35,  "1-5": 75,
+  "2-0": 9,    "2-1": 8,    "2-2": 12,  "2-3": 18,  "2-4": 35,  "2-5": 70,
+  "3-0": 17,   "3-1": 14,   "3-2": 15,  "3-3": 30,  "3-4": 50,  "3-5": 80,
+  "4-0": 35,   "4-1": 25,   "4-2": 25,  "4-3": 40,  "4-4": 55,  "4-5": 90,
+  "5-0": 70,   "5-1": 55,   "5-2": 50,  "5-3": 55,  "5-4": 70,  "5-5": 100,
+}
+
+export function correctScoreOdds(home: number, away: number): number {
+  const key = `${home}-${away}`
+  if (CORRECT_SCORE_ODDS[key]) return CORRECT_SCORE_ODDS[key]
+  if (home > 5 || away > 5) return clampOdds(Math.max(home, away) * 25)
+  return CORRECT_SCORE_ODDS[key] ?? 100
+}
+
 /**
  * Multiplier applied to anytime-scorer odds to obtain scorer+minute-range odds.
  *

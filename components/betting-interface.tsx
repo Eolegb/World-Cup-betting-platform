@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
 import { cn } from "@/lib/utils"
 import { formatMoney, formatOdds } from "@/lib/format"
-import { MARKET_LABELS, scorerMinuteRangeOdds, type Market, type MarketType } from "@/lib/markets"
+import { MARKET_LABELS, scorerMinuteRangeOdds, correctScoreOdds, type Market, type MarketType } from "@/lib/markets"
 import { placeBet } from "@/app/actions/bets"
-import { Coins, Target, Timer, X, Sparkles } from "lucide-react"
+import { flagForTeam } from "@/lib/flags"
+import { teamColors } from "@/lib/team-colors"
+import { Coins, Target, Timer, X, Sparkles, ChevronDown } from "lucide-react"
 
 type Selection = {
   marketType: MarketType
@@ -37,11 +39,15 @@ export function BettingInterface({
   markets,
   balance,
   canBet,
+  homeTeam,
+  awayTeam,
 }: {
   matchId: number
   markets: Market[]
   balance: number
   canBet: boolean
+  homeTeam: string
+  awayTeam: string
 }) {
   const router = useRouter()
   const [selection, setSelection] = useState<Selection | null>(null)
@@ -57,6 +63,10 @@ export function BettingInterface({
   const availableTabs = TAB_ORDER.filter((t) => marketByType.has(t) || t === "scorer_minute_range")
   const [activeTab, setActiveTab] = useState<string>(availableTabs[0] ?? "")
   const scorerMarket = marketByType.get("anytime_scorer")
+  const homeFlag = flagForTeam(homeTeam)
+  const awayFlag = flagForTeam(awayTeam)
+  const homeColors = teamColors(homeTeam)
+  const awayColors = teamColors(awayTeam)
 
   function pick(marketType: MarketType, label: string, odds: number, payload: Record<string, unknown>) {
     setSelection({ marketType, label, odds, payload })
@@ -92,14 +102,18 @@ export function BettingInterface({
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
-      <div className="rounded-2xl border border-primary/20 bg-card p-4 sm:p-6">
-        <div className="mb-4 flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-            <Coins className="h-4 w-4 text-primary" />
-          </span>
-          <div>
-            <h3 className="font-heading text-base text-card-foreground">Zone de paris</h3>
-            <p className="text-xs text-muted-foreground">Choisis un marché et une sélection</p>
+      <div className="rounded-2xl border border-border/50 glass p-4 sm:p-6">
+        <div className="mb-4">
+          <div className="flex items-center justify-center gap-4">
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-3xl">{homeFlag}</span>
+              <span className="text-xs font-medium text-card-foreground text-center leading-tight">{homeTeam}</span>
+            </div>
+            <span className="text-xl font-heading text-muted-foreground">VS</span>
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-3xl">{awayFlag}</span>
+              <span className="text-xs font-medium text-card-foreground text-center leading-tight">{awayTeam}</span>
+            </div>
           </div>
         </div>
 
@@ -123,12 +137,51 @@ export function BettingInterface({
           <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
         </div>
 
-        {activeTab === "scorer_minute_range" ? (
+        {activeTab === "correct_score" ? (
+          <ScorePicker
+            disabled={!canBet}
+            homeTeam={homeTeam}
+            awayTeam={awayTeam}
+            homeFlag={homeFlag}
+            awayFlag={awayFlag}
+            selectedHome={
+              selection && selection.marketType === "correct_score"
+                ? Number(selection.payload.home)
+                : -1
+            }
+            selectedAway={
+              selection && selection.marketType === "correct_score"
+                ? Number(selection.payload.away)
+                : -1
+            }
+            onPick={(h, a) => {
+              const odd = correctScoreOdds(h, a)
+              pick("correct_score", `${homeTeam} ${h} - ${a} ${awayTeam}`, odd, { home: h, away: a })
+            }}
+          />
+        ) : activeTab === "scorer_minute_range" ? (
           <ScorerMinuteRange
             scorerMarket={scorerMarket}
+            homeTeam={homeTeam}
+            awayTeam={awayTeam}
             disabled={!canBet}
             current={selection}
             onPick={(sel) => setSelection(sel)}
+          />
+        ) : activeTab === "anytime_scorer" || activeTab === "first_scorer" ? (
+          <ScorerSelect
+            market={marketByType.get(activeTab as MarketType)}
+            homeTeam={homeTeam}
+            awayTeam={awayTeam}
+            homeFlag={homeFlag}
+            awayFlag={awayFlag}
+            disabled={!canBet}
+            selectedKey={
+              selection && selection.marketType === activeTab
+                ? String(selection.payload.__key ?? selection.label)
+                : ""
+            }
+            onPick={pick}
           />
         ) : (
           <OutcomeGrid
@@ -202,13 +255,160 @@ function OutcomeGrid({
   )
 }
 
+function ScorePicker({
+  disabled,
+  homeTeam,
+  awayTeam,
+  homeFlag,
+  awayFlag,
+  selectedHome,
+  selectedAway,
+  onPick,
+}: {
+  disabled: boolean
+  homeTeam: string
+  awayTeam: string
+  homeFlag: string
+  awayFlag: string
+  selectedHome: number
+  selectedAway: number
+  onPick: (home: number, away: number) => void
+}) {
+  const [h, setH] = useState(selectedHome >= 0 ? selectedHome : -1)
+  const [a, setA] = useState(selectedAway >= 0 ? selectedAway : -1)
+
+  function updateHome(val: number) { setH(val); if (a >= 0) onPick(val, a) }
+  function updateAway(val: number) { setA(val); if (h >= 0) onPick(h, val) }
+
+  const hasScore = h >= 0 && a >= 0
+  const odds = hasScore ? correctScoreOdds(h, a) : 0
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3">
+        <div className="flex-1">
+          <p className="mb-1.5 text-xs font-medium text-muted-foreground text-center">
+            {homeFlag} {homeTeam}
+          </p>
+          <select
+            value={h}
+            onChange={e => updateHome(Number(e.target.value))}
+            disabled={disabled}
+            className="w-full appearance-none rounded-xl border border-border bg-card px-4 py-3 text-center text-sm font-medium text-foreground focus:border-primary focus:outline-none disabled:opacity-50"
+          >
+            <option value={-1}>—</option>
+            {[0,1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </div>
+        <span className="text-muted-foreground text-lg font-heading shrink-0 mt-5">-</span>
+        <div className="flex-1">
+          <p className="mb-1.5 text-xs font-medium text-muted-foreground text-center">
+            {awayFlag} {awayTeam}
+          </p>
+          <select
+            value={a}
+            onChange={e => updateAway(Number(e.target.value))}
+            disabled={disabled}
+            className="w-full appearance-none rounded-xl border border-border bg-card px-4 py-3 text-center text-sm font-medium text-foreground focus:border-primary focus:outline-none disabled:opacity-50"
+          >
+            <option value={-1}>—</option>
+            {[0,1,2,3,4,5].map(n => <option key={n} value={n}>{n}</option>)}
+          </select>
+        </div>
+      </div>
+      {hasScore && (
+        <div className={cn(
+          "flex items-center justify-between rounded-xl px-4 py-3",
+          selectedHome === h && selectedAway === a
+            ? "bg-primary/10 border border-primary/50"
+            : "bg-card border border-border"
+        )}>
+          <span className="text-sm font-medium text-card-foreground">
+            {homeTeam} {h} - {a} {awayTeam}
+          </span>
+          <span className={cn(
+            "font-heading text-lg tabular",
+            selectedHome === h && selectedAway === a ? "text-primary" : "text-gold"
+          )}>
+            {formatOdds(odds)}
+          </span>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ScorerSelect({
+  market,
+  homeTeam,
+  awayTeam,
+  homeFlag,
+  awayFlag,
+  disabled,
+  selectedKey,
+  onPick,
+}: {
+  market?: Market
+  homeTeam: string
+  awayTeam: string
+  homeFlag: string
+  awayFlag: string
+  disabled: boolean
+  selectedKey: string | null
+  onPick: (marketType: MarketType, label: string, odds: number, payload: Record<string, unknown>) => void
+}) {
+  if (!market) return null
+
+  const homePlayers = market.outcomes.filter(o => String(o.payload.team) === "home")
+  const awayPlayers = market.outcomes.filter(o => String(o.payload.team) === "away")
+  const others = market.outcomes.filter(o => String(o.payload.team) !== "home" && String(o.payload.team) !== "away")
+
+  return (
+    <div className="relative">
+      <select
+        value={selectedKey ?? ""}
+        disabled={disabled}
+        onChange={e => {
+          const o = market.outcomes.find(o => o.key === e.target.value)
+          if (o) onPick(market.type, `${MARKET_LABELS[market.type]}: ${o.label}`, o.odds, { ...o.payload, __key: o.key })
+        }}
+        className="w-full appearance-none rounded-xl border border-border bg-card px-4 py-3 pr-10 text-sm font-medium text-foreground focus:border-primary focus:outline-none disabled:opacity-50"
+      >
+        <option value="">— Choisir un joueur —</option>
+        {homePlayers.length > 0 && (
+          <optgroup label={`${homeFlag} ${homeTeam}`}>
+            {homePlayers.map(o => (
+              <option key={o.key} value={o.key}>{o.label} — ×{formatOdds(o.odds)}</option>
+            ))}
+          </optgroup>
+        )}
+        {awayPlayers.length > 0 && (
+          <optgroup label={`${awayFlag} ${awayTeam}`}>
+            {awayPlayers.map(o => (
+              <option key={o.key} value={o.key}>{o.label} — ×{formatOdds(o.odds)}</option>
+            ))}
+          </optgroup>
+        )}
+        {others.map(o => (
+          <option key={o.key} value={o.key}>{o.label} — ×{formatOdds(o.odds)}</option>
+        ))}
+      </select>
+      <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+    </div>
+  )
+}
+
 function ScorerMinuteRange({
   scorerMarket,
+  homeTeam,
+  awayTeam,
   disabled,
   current,
   onPick,
 }: {
   scorerMarket?: Market
+  homeTeam: string
+  awayTeam: string
   disabled: boolean
   current: Selection | null
   onPick: (sel: Selection) => void
@@ -220,7 +420,13 @@ function ScorerMinuteRange({
   const baseOdds = players.find((p) => p.key === player)?.odds ?? 0
   const derivedOdds = baseOdds ? scorerMinuteRangeOdds(baseOdds, range[0], range[1]) : 0
 
-  if (!scorerMarket || players.length === 0) {
+  const homePlayers = players.filter(o => String(o.payload.team) === "home")
+  const awayPlayers = players.filter(o => String(o.payload.team) === "away")
+  const others = players.filter(o => String(o.payload.team) !== "home" && String(o.payload.team) !== "away")
+  const homeFlag = flagForTeam(homeTeam)
+  const awayFlag = flagForTeam(awayTeam)
+
+  if (players.length === 0) {
     return <p className="text-sm text-muted-foreground">Aucun buteur disponible pour ce match.</p>
   }
 
@@ -243,8 +449,7 @@ function ScorerMinuteRange({
       <div className="mb-4 flex items-start gap-2">
         <Sparkles className="mt-0.5 h-4 w-4 text-gold" />
         <p className="text-sm text-muted-foreground text-pretty">
-          Choisis un buteur et une tranche de minutes. Plus la fenêtre est précise, plus la cote (et le gain potentiel)
-          grimpe.
+          Choisis un buteur et une tranche de minutes. Plus la fenêtre est précise, plus la cote grimpe.
         </p>
       </div>
 
@@ -259,7 +464,21 @@ function ScorerMinuteRange({
           disabled={disabled}
           className="w-full appearance-none rounded-xl border border-border bg-card px-4 py-3 pr-10 text-sm font-medium text-foreground focus:border-primary focus:outline-none disabled:opacity-50"
         >
-          {players.map((p) => (
+          {homePlayers.length > 0 && (
+            <optgroup label={`${homeFlag} ${homeTeam}`}>
+              {homePlayers.map(p => (
+                <option key={p.key} value={p.key}>{p.label} — ×{formatOdds(p.odds)}</option>
+              ))}
+            </optgroup>
+          )}
+          {awayPlayers.length > 0 && (
+            <optgroup label={`${awayFlag} ${awayTeam}`}>
+              {awayPlayers.map(p => (
+                <option key={p.key} value={p.key}>{p.label} — ×{formatOdds(p.odds)}</option>
+              ))}
+            </optgroup>
+          )}
+          {others.map(p => (
             <option key={p.key} value={p.key}>{p.label} — ×{formatOdds(p.odds)}</option>
           ))}
         </select>

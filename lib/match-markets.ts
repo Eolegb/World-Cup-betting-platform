@@ -5,7 +5,7 @@ import {
   clampOdds,
   scorerMinuteRangeOdds,
 } from "./markets"
-import { getPlayerBaseOdds } from "./teams"
+import { getPlayerBaseOdds, rosterFor } from "./teams"
 import { flagForTeam } from "./flags"
 
 // A lightweight shape of a match used by the market builder (matches the db row).
@@ -99,38 +99,23 @@ export function buildMarkets(match: MatchLike, players: string[], odds: OddsInpu
     ],
   })
 
-  // Correct score (a curated grid).
-  const scores: [number, number, number][] = [
-    [1, 0, 6.5],
-    [2, 0, 9],
-    [2, 1, 8],
-    [0, 0, 9.5],
-    [1, 1, 6],
-    [2, 2, 12],
-    [0, 1, 7.5],
-    [0, 2, 11],
-    [1, 2, 9],
-  ]
+  // Correct score — handled in UI with pick-your-own-score.
   markets.push({
     type: "correct_score",
     label: "Score exact",
-    outcomes: scores.map(([h, a, odd]) => ({
-      key: `${h}-${a}`,
-      label: `${homeFlag} ${match.homeTeam} ${h} - ${a} ${match.awayTeam} ${awayFlag}`,
-      odds: clampOdds(odd),
-      payload: { home: h, away: a },
-    })),
+    outcomes: [],
   })
 
-  // Anytime scorer + first scorer, from roster.
+  // Anytime scorer + first scorer, tagged by team.
   const scorerOdds = odds.scorers ?? {}
   const anytime: Outcome[] = []
   const first: Outcome[] = []
+  const homeRoster = new Set(rosterFor(match.homeTeam).map(p => p.toLowerCase()))
   for (const p of players) {
     const base = scorerOdds[p] ?? getPlayerBaseOdds(p, players.indexOf(p))
-    anytime.push({ key: p, label: p, odds: clampOdds(base), payload: { player: p } })
-    // First scorer is rarer than anytime -> higher odds.
-    first.push({ key: p, label: p, odds: clampOdds(base * 2.6), payload: { player: p } })
+    const team = homeRoster.has(p.toLowerCase()) ? "home" : "away"
+    anytime.push({ key: p, label: p, odds: clampOdds(base), payload: { player: p, team } })
+    first.push({ key: p, label: p, odds: clampOdds(base * 2.6), payload: { player: p, team } })
   }
   if (anytime.length) {
     markets.push({ type: "anytime_scorer", label: "Buteur", outcomes: anytime })

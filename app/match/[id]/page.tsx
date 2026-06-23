@@ -203,7 +203,7 @@ export default async function MatchDetailPage({
         </div>
       )}
       {canBet ? (
-        <BettingTabs matchId={m.id} markets={markets} balance={p.balance} />
+        <BettingTabs matchId={m.id} markets={markets} balance={p.balance} homeTeam={m.homeTeam} awayTeam={m.awayTeam} />
       ) : !isScheduled ? (
         <div className="rounded-2xl border border-border bg-card p-6 text-center text-sm text-muted-foreground">
           Les paris sont fermés pour ce match.
