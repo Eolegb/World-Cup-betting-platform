@@ -425,14 +425,14 @@ function CombinedScorerSelect({
         {homePlayers.length > 0 && (
           <optgroup label={`${homeFlag} ${homeTeam}`}>
             {homePlayers.map(o => (
-              <option key={o.key} value={o.key}>{o.label} — ×{formatOdds(o.odds)}</option>
+              <option key={o.key} value={o.key}>{o.label}</option>
             ))}
           </optgroup>
         )}
         {awayPlayers.length > 0 && (
           <optgroup label={`${awayFlag} ${awayTeam}`}>
             {awayPlayers.map(o => (
-              <option key={o.key} value={o.key}>{o.label} — ×{formatOdds(o.odds)}</option>
+              <option key={o.key} value={o.key}>{o.label}</option>
             ))}
           </optgroup>
         )}

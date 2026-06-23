@@ -2,8 +2,9 @@
 // Odds Service — fetch, normalize, cache, and serve betting odds.
 // -----------------------------------------------------------------------------
 // Sources:
-//   1. odds-api.io (preferred) — ML + goalscorer markets
-//   2. the-odds-api.com (fallback) — h2h + totals
+//   1. therundown.io (preferred) — FIFA World Cup moneyline + totals
+//   2. odds-api.io — ML + goalscorer markets
+//   3. the-odds-api.com (fallback) — h2h + totals
 // Cache: PostgreSQL (match.oddsJson) with in-memory TTL
 // =============================================================================
 
@@ -11,6 +12,7 @@ import { db } from "@/lib/db"
 import { match } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { teamsMatch } from "@/lib/team-name"
+import { fetchRundownOdds, storeRundownOdds } from "@/lib/therundown-service"
 
 const ODDS_API_BASE = "https://api.the-odds-api.com/v4"
 const ODDS_API_IO_BASE = "https://api.odds-api.io/v3"
@@ -348,10 +350,18 @@ async function storeOddsApiIoInDb(oddsMap: Map<string, NormalizedOdds>): Promise
 // Public API
 // ---------------------------------------------------------------------------
 
-/** Fetch odds for all matches and store in DB. Prefers odds-api.io, falls back to the-odds-api. */
+/** Fetch odds for all matches and store in DB. Prefers therundown, then odds-api.io, then the-odds-api. */
 export async function updateAllOdds(): Promise<{ ok: boolean; stored: number; source?: string; error?: string }> {
   try {
-    // 1. Try odds-api.io first
+    // 1. Try therundown.io first (FIFA World Cup)
+    const rundownMap = await fetchRundownOdds()
+    if (rundownMap.size > 0) {
+      const stored = await storeRundownOdds(rundownMap)
+      memCache.clear()
+      return { ok: true, stored, source: "therundown" }
+    }
+
+    // 2. Try odds-api.io
     if (process.env.ODDS_API_IO_KEY) {
       const oddsMap = await fetchOddsApiIo()
       if (oddsMap.size > 0) {
@@ -362,7 +372,7 @@ export async function updateAllOdds(): Promise<{ ok: boolean; stored: number; so
       console.warn("[odds-service] odds-api.io returned 0 results, trying fallback...")
     }
 
-    // 2. Fallback to the-odds-api.com
+    // 3. Fallback to the-odds-api.com
     const events = await fetchRawOdds()
     if (!events.length) return { ok: false, stored: 0, error: "No odds data from any API" }
     const stored = await storeOddsInDb(events)

@@ -387,19 +387,19 @@ function ScorerSelect({
         {homePlayers.length > 0 && (
           <optgroup label={`${homeFlag} ${homeTeam}`}>
             {homePlayers.map(o => (
-              <option key={o.key} value={o.key}>{o.label} — ×{formatOdds(o.odds)}</option>
+              <option key={o.key} value={o.key}>{o.label}</option>
             ))}
           </optgroup>
         )}
         {awayPlayers.length > 0 && (
           <optgroup label={`${awayFlag} ${awayTeam}`}>
             {awayPlayers.map(o => (
-              <option key={o.key} value={o.key}>{o.label} — ×{formatOdds(o.odds)}</option>
+              <option key={o.key} value={o.key}>{o.label}</option>
             ))}
           </optgroup>
         )}
         {others.map(o => (
-          <option key={o.key} value={o.key}>{o.label} — ×{formatOdds(o.odds)}</option>
+          <option key={o.key} value={o.key}>{o.label}</option>
         ))}
       </select>
       <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
@@ -476,19 +476,19 @@ function ScorerMinuteRange({
           {homePlayers.length > 0 && (
             <optgroup label={`${homeFlag} ${homeTeam}`}>
               {homePlayers.map(p => (
-                <option key={p.key} value={p.key}>{p.label} — ×{formatOdds(p.odds)}</option>
+                <option key={p.key} value={p.key}>{p.label}</option>
               ))}
             </optgroup>
           )}
           {awayPlayers.length > 0 && (
             <optgroup label={`${awayFlag} ${awayTeam}`}>
               {awayPlayers.map(p => (
-                <option key={p.key} value={p.key}>{p.label} — ×{formatOdds(p.odds)}</option>
+                <option key={p.key} value={p.key}>{p.label}</option>
               ))}
             </optgroup>
           )}
           {others.map(p => (
-            <option key={p.key} value={p.key}>{p.label} — ×{formatOdds(p.odds)}</option>
+            <option key={p.key} value={p.key}>{p.label}</option>
           ))}
         </select>
         <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
