@@ -4,12 +4,12 @@ import { useState, useEffect } from "react"
 import { utcDate } from "@/lib/datetime"
 
 export function Countdown({ kickoff }: { kickoff: string | Date }) {
-  const [label, setLabel] = useState("...")
+  const [label, setLabel] = useState("")
 
   useEffect(() => {
     function tick() {
       const target = utcDate(kickoff).getTime()
-      if (isNaN(target)) { setLabel("..."); return }
+      if (isNaN(target)) { setLabel(""); return }
       const diff = target - Date.now()
       if (diff <= 0) { setLabel("C'est parti !"); return }
       const days = Math.floor(diff / 86400000)
