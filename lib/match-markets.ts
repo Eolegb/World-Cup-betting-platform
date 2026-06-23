@@ -5,6 +5,7 @@ import {
   clampOdds,
   scorerMinuteRangeOdds,
 } from "./markets"
+import { getPlayerBaseOdds } from "./teams"
 
 // A lightweight shape of a match used by the market builder (matches the db row).
 export type MatchLike = {
@@ -123,7 +124,7 @@ export function buildMarkets(match: MatchLike, players: string[], odds: OddsInpu
   const anytime: Outcome[] = []
   const first: Outcome[] = []
   for (const p of players) {
-    const base = scorerOdds[p] ?? heuristicScorerOdds(p, players.length)
+    const base = scorerOdds[p] ?? getPlayerBaseOdds(p, players.indexOf(p))
     anytime.push({ key: p, label: p, odds: clampOdds(base), payload: { player: p } })
     // First scorer is rarer than anytime -> higher odds.
     first.push({ key: p, label: p, odds: clampOdds(base * 2.6), payload: { player: p } })
@@ -136,13 +137,6 @@ export function buildMarkets(match: MatchLike, players: string[], odds: OddsInpu
   return markets
 }
 
-// Stable pseudo-random baseline odds so the roster has varied prices.
-function heuristicScorerOdds(player: string, rosterSize: number): number {
-  let h = 0
-  for (let i = 0; i < player.length; i++) h = (h * 31 + player.charCodeAt(i)) % 1000
-  const spread = 2.2 + (h / 1000) * 6 // 2.2 .. 8.2
-  return spread
-}
 
 /** Anytime-scorer odds for a given player, for the minute-range market. */
 export function anytimeOddsForPlayer(markets: Market[], player: string): number | null {
