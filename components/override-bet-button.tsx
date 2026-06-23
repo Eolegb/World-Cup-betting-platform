@@ -50,7 +50,7 @@ export function OverrideBetButton({ betId, currentStatus }: { betId: number; cur
         <ChevronDown className={`h-3.5 w-3.5 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
       {open && (
-        <div className="absolute right-0 top-full mt-1.5 z-[200] rounded-xl border border-border bg-card shadow-2xl overflow-hidden min-w-[140px]">
+        <div className="absolute right-0 top-full mt-1.5 z-[200] rounded-xl border border-border bg-popover shadow-2xl overflow-hidden min-w-[140px]">
           {OPTIONS.map(o => (
             <button
               key={o.value}

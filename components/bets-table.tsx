@@ -48,7 +48,7 @@ function StyledSelect({ value, onChange, children }: {
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full appearance-none rounded-lg border border-border bg-card px-3 py-2 pr-8 text-sm font-medium text-foreground focus:border-primary focus:outline-none cursor-pointer"
+        className="w-full appearance-none rounded-lg border border-border bg-popover px-3 py-2 pr-8 text-sm font-medium text-foreground focus:border-primary focus:outline-none cursor-pointer"
       >
         {children}
       </select>

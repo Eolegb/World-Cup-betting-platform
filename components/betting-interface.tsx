@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 import { formatMoney, formatOdds } from "@/lib/format"
 import { MARKET_LABELS, scorerMinuteRangeOdds, type Market, type MarketType } from "@/lib/markets"
 import { placeBet } from "@/app/actions/bets"
-import { Coins, Target, Timer, X, Sparkles } from "lucide-react"
+import { Coins, Target, Timer, X, Sparkles, ChevronDown } from "lucide-react"
 
 type Selection = {
   marketType: MarketType
@@ -182,32 +182,24 @@ function OutcomeGrid({
   if (!market) return null
 
   return (
-    <div className="flex flex-col gap-1.5">
-      {market.outcomes.map((o) => {
-        const active = selectedKey === o.key
-        return (
-          <button
-            key={o.key}
-            type="button"
-            disabled={disabled}
-            onClick={() => onPick(market.type, `${MARKET_LABELS[market.type]}: ${o.label}`, o.odds, { ...o.payload, __key: o.key })}
-            className={cn(
-              "flex items-center justify-between rounded-xl px-4 py-3 text-left transition-all duration-200 disabled:opacity-40 interactive",
-              active
-                ? "bg-primary/10 border border-primary/50"
-                : "glass border border-border/40 hover:border-primary/30 hover:bg-primary/5",
-            )}
-          >
-            <span className="text-sm font-medium text-card-foreground">{o.label}</span>
-            <span className={cn(
-              "font-heading text-lg tabular",
-              active ? "text-primary" : "text-gold"
-            )}>
-              {formatOdds(o.odds)}
-            </span>
-          </button>
-        )
-      })}
+    <div className="relative">
+      <select
+        value={selectedKey ?? ""}
+        disabled={disabled}
+        onChange={e => {
+          const o = market.outcomes.find(o => o.key === e.target.value)
+          if (o) onPick(market.type, `${MARKET_LABELS[market.type]}: ${o.label}`, o.odds, { ...o.payload, __key: o.key })
+        }}
+        className="w-full appearance-none rounded-xl border border-border bg-popover px-4 py-3 pr-10 text-sm font-medium text-foreground focus:border-primary focus:outline-none disabled:opacity-40 cursor-pointer"
+      >
+        <option value="" className="text-muted-foreground">— Choisir —</option>
+        {market.outcomes.map((o) => (
+          <option key={o.key} value={o.key}>
+            {o.label} — ×{formatOdds(o.odds)}
+          </option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
     </div>
   )
 }
