@@ -176,18 +176,20 @@ function parseOddsApiIoEvent(ev: OddsApiIoEvent): NormalizedOdds | null {
         }
       }
 
-      if (name === "TOTALS" || name === "OVER/UNDER") {
-        const odds = market.odds?.[0]
-        if (odds) {
-          const hdp = parseFloat(odds.hdp ?? "2.5")
-          if (hdp === 2.5 || !odds.hdp) {
+      // "Goals Over/Under" or "Totals" — look for hdp=2.5 line
+      if (name.includes("TOTAL") || name.includes("OVER/UNDER") || name.includes("GOALS OVER")) {
+        for (const odds of market.odds ?? []) {
+          const hdp = parseFloat(odds.hdp ?? "0")
+          if (hdp === 2.5) {
             over25 = parseFloat(odds.over || "1.9")
             under25 = parseFloat(odds.under || "1.9")
+            break
           }
         }
       }
 
-      if (name === "BTTS" || name === "BOTH TEAMS TO SCORE") {
+      // "Both Teams To Score" — {yes, no}
+      if (name === "BOTH TEAMS TO SCORE" || name === "BTTS") {
         const odds = market.odds?.[0]
         if (odds) {
           bttsYes = parseFloat(odds.yes || "1.85")
@@ -195,20 +197,16 @@ function parseOddsApiIoEvent(ev: OddsApiIoEvent): NormalizedOdds | null {
         }
       }
 
-      // Goalscorer markets
-      if (name.includes("GOALSCORER") || name.includes("SCORER") || name.includes("ANYTIME")) {
+      // "Anytime Goalscorer" — {label: "Player Name", hdp: 0.5, over: "2.750"}
+      if (name === "ANYTIME GOALSCORER") {
         for (const outcome of market.odds ?? []) {
-          // Each outcome might be { "Player Name": "3.50" } or similar
-          for (const [key, val] of Object.entries(outcome)) {
-            const numVal = parseFloat(String(val))
-            if (key !== "updatedAt" && numVal > 1 && numVal < 100) {
-              scorers[key] = numVal
-            }
+          const playerName = outcome.label
+          const odds = parseFloat(outcome.over || "0")
+          if (playerName && odds > 1 && odds < 200) {
+            scorers[playerName] = clampFourDec(odds)
           }
         }
       }
-
-      if (foundML) break // got what we need from this bookmaker
     }
     if (foundML) break
   }
