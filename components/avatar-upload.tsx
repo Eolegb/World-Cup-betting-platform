@@ -18,7 +18,7 @@ export function AvatarUpload({ name, currentImage, size = "md" }: { name: string
       const img = new Image()
       img.onload = async () => {
         const canvas = document.createElement("canvas")
-        const s = 400
+        const s = 512
         canvas.width = s; canvas.height = s
         const ctx = canvas.getContext("2d")!
         ctx.imageSmoothingQuality = "high"
@@ -26,7 +26,7 @@ export function AvatarUpload({ name, currentImage, size = "md" }: { name: string
         const sx = (img.width - min) / 2
         const sy = (img.height - min) / 2
         ctx.drawImage(img, sx, sy, min, min, 0, 0, s, s)
-        const base64 = canvas.toDataURL("image/jpeg", 0.92)
+        const base64 = canvas.toDataURL("image/png")
         setImage(base64)
         const res = await updateAvatar(base64)
         if (res.ok) toast.success("Photo mise à jour !")
