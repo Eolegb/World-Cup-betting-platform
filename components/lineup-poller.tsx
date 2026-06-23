@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { getMatchLineups } from "@/app/actions/lineups"
 import { LineupLoader } from "@/components/lineup-field"
 import type { TeamLineup } from "@/lib/providers"
@@ -21,29 +21,28 @@ export function LineupPoller({
   kickoff: string
 }) {
   const [data, setData] = useState<LineupData | null>(null)
-  const [show, setShow] = useState(false)
+  const fetched = useRef(false)
 
   useEffect(() => {
+    if (fetched.current) return
+
     const kickTime = new Date(kickoff).getTime()
-    const fetchMin = kickTime - 40 * 60 * 1000 // 40 min before
+    const fetchAt = kickTime - 40 * 60 * 1000 // 40 min before kickoff
+    const delay = Math.max(0, fetchAt - Date.now())
 
-    async function check() {
-      if (Date.now() >= fetchMin && !data) {
-        const dateStr = new Date(kickoff).toISOString().split("T")[0]
-        const result = await getMatchLineups(homeTeam, awayTeam, dateStr)
-        if (result.home || result.away) {
-          setData(result)
-          setShow(true)
-        }
+    const timer = setTimeout(async () => {
+      fetched.current = true
+      const dateStr = new Date(kickoff).toISOString().split("T")[0]
+      const result = await getMatchLineups(homeTeam, awayTeam, dateStr)
+      if (result.home || result.away) {
+        setData(result)
       }
-    }
+    }, delay)
 
-    check()
-    const id = setInterval(check, 60000) // check every minute
-    return () => clearInterval(id)
-  }, [homeTeam, awayTeam, kickoff, data])
+    return () => clearTimeout(timer)
+  }, [homeTeam, awayTeam, kickoff])
 
-  if (!show || !data) return null
+  if (!data) return null
 
   return (
     <div className="mb-6 space-y-3">
