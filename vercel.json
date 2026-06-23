@@ -3,7 +3,7 @@
   "crons": [
     {
       "path": "/api/cron/heartbeat?secret=cron-secret-change-me",
-      "schedule": "0 12 * * *"
+      "schedule": "0 13 * * *"
     }
   ]
 }

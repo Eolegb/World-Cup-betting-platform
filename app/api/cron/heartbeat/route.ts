@@ -22,11 +22,16 @@ export async function GET(req: Request) {
   if (!secret) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
   const origin = new URL(req.url).origin
-  const [liveRes, pushRes] = await Promise.all([
+  const [liveRes, pushRes, oddsRes] = await Promise.all([
     fetch(`${origin}/api/sync/live?secret=${encodeURIComponent(secret)}`),
     fetch(`${origin}/api/push/send?secret=${encodeURIComponent(secret)}`),
+    fetch(`${origin}/api/cron/update-odds?secret=${encodeURIComponent(secret)}`),
   ])
 
-  const [liveData, pushData] = await Promise.all([liveRes.json(), pushRes.json()])
-  return NextResponse.json({ ok: true, live: liveData, push: pushData })
+  const [liveData, pushData, oddsData] = await Promise.all([
+    liveRes.json(),
+    pushRes.json(),
+    oddsRes.json(),
+  ])
+  return NextResponse.json({ ok: true, live: liveData, push: pushData, odds: oddsData })
 }
