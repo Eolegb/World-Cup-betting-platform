@@ -6,6 +6,7 @@ import {
   scorerMinuteRangeOdds,
 } from "./markets"
 import { getPlayerBaseOdds } from "./teams"
+import { flagForTeam } from "./flags"
 
 // A lightweight shape of a match used by the market builder (matches the db row).
 export type MatchLike = {
@@ -51,13 +52,15 @@ export function buildMarkets(match: MatchLike, players: string[], odds: OddsInpu
   const markets: Market[] = []
 
   // 1X2
+  const homeFlag = flagForTeam(match.homeTeam)
+  const awayFlag = flagForTeam(match.awayTeam)
   markets.push({
     type: "match_result",
     label: "Resultat du match",
     outcomes: [
-      { key: "home", label: `${match.homeTeam} gagne`, odds: clampOdds(o.homeWin), payload: { side: "home" } },
-      { key: "draw", label: "Match nul", odds: clampOdds(o.draw), payload: { side: "draw" } },
-      { key: "away", label: `${match.awayTeam} gagne`, odds: clampOdds(o.awayWin), payload: { side: "away" } },
+      { key: "home", label: `${homeFlag} ${match.homeTeam} gagne`, odds: clampOdds(o.homeWin), payload: { side: "home" } },
+      { key: "draw", label: "🤝 Match nul", odds: clampOdds(o.draw), payload: { side: "draw" } },
+      { key: "away", label: `${awayFlag} ${match.awayTeam} gagne`, odds: clampOdds(o.awayWin), payload: { side: "away" } },
     ],
   })
 
@@ -70,9 +73,9 @@ export function buildMarkets(match: MatchLike, players: string[], odds: OddsInpu
     type: "double_chance",
     label: "Double chance",
     outcomes: [
-      { key: "1X", label: `${match.homeTeam} ou Nul`, odds: dc(pHome, pDraw), payload: { sides: ["home", "draw"] } },
-      { key: "12", label: "Pas de nul", odds: dc(pHome, pAway), payload: { sides: ["home", "away"] } },
-      { key: "X2", label: `Nul ou ${match.awayTeam}`, odds: dc(pDraw, pAway), payload: { sides: ["draw", "away"] } },
+      { key: "1X", label: `${homeFlag} ${match.homeTeam} ou Nul`, odds: dc(pHome, pDraw), payload: { sides: ["home", "draw"] } },
+      { key: "12", label: "🤝 Pas de nul", odds: dc(pHome, pAway), payload: { sides: ["home", "away"] } },
+      { key: "X2", label: `Nul ou ${awayFlag} ${match.awayTeam}`, odds: dc(pDraw, pAway), payload: { sides: ["draw", "away"] } },
     ],
   })
 
@@ -113,7 +116,7 @@ export function buildMarkets(match: MatchLike, players: string[], odds: OddsInpu
     label: "Score exact",
     outcomes: scores.map(([h, a, odd]) => ({
       key: `${h}-${a}`,
-      label: `${match.homeTeam} ${h} - ${a} ${match.awayTeam}`,
+      label: `${homeFlag} ${match.homeTeam} ${h} - ${a} ${match.awayTeam} ${awayFlag}`,
       odds: clampOdds(odd),
       payload: { home: h, away: a },
     })),

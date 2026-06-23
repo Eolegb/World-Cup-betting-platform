@@ -51,19 +51,21 @@ export default async function MatchDetailPage({
 
       {/* Match header */}
       <div className="relative mb-6 overflow-hidden rounded-3xl border border-border/50 glass-strong animate-scale-in">
-        <div className="flex h-1.5">
+        <div className="flex h-[3px]">
           <div className="flex-1" style={{ backgroundColor: homeColors.primary }} />
           <div className="flex-1" style={{ backgroundColor: awayColors.primary }} />
         </div>
         <div className="bg-card p-3 sm:p-6">
           <div className="mb-3 flex items-center justify-between">
-            <span className="text-xs text-muted-foreground">{m.stage ?? "Coupe du Monde 2026"}</span>
+            <span className="inline-flex items-center rounded-full border border-border/60 bg-secondary px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+              {m.stage ?? "Coupe du Monde 2026"}
+            </span>
             <StatusPill status={m.status} hasStarted={hasStarted} />
           </div>
 
           <div className="flex items-center justify-between gap-2 sm:gap-4">
             <div className="flex flex-1 items-center gap-2 sm:gap-3 min-w-0">
-              <span className="text-2xl sm:text-3xl shrink-0">{homeFlag}</span>
+              <span className="text-3xl sm:text-4xl shrink-0">{homeFlag}</span>
               <p className="font-heading text-base sm:text-xl text-card-foreground truncate">{m.homeTeam}</p>
             </div>
 
@@ -85,11 +87,11 @@ export default async function MatchDetailPage({
 
             <div className="flex flex-1 items-center justify-end gap-2 sm:gap-3 text-right min-w-0">
               <p className="font-heading text-base sm:text-xl text-card-foreground truncate">{m.awayTeam}</p>
-              <span className="text-2xl sm:text-3xl shrink-0">{awayFlag}</span>
+              <span className="text-3xl sm:text-4xl shrink-0">{awayFlag}</span>
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+          <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
             <span className="flex items-center gap-1">
               <Calendar className="h-3.5 w-3.5" />
               {new Intl.DateTimeFormat("fr-FR", { weekday: "long", day: "numeric", month: "long" }).format(new Date(m.kickoff))}
