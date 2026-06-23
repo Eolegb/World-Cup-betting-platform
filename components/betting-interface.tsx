@@ -55,6 +55,7 @@ export function BettingInterface({
   }, [markets])
 
   const availableTabs = TAB_ORDER.filter((t) => marketByType.has(t) || t === "scorer_minute_range")
+  const [activeTab, setActiveTab] = useState<string>(availableTabs[0] ?? "")
   const scorerMarket = marketByType.get("anytime_scorer")
 
   function pick(marketType: MarketType, label: string, odds: number, payload: Record<string, unknown>) {
@@ -110,12 +111,12 @@ export function BettingInterface({
 
         <div className="mb-4 flex gap-1.5 overflow-x-auto scrollbar-none flex-nowrap pb-1">
           {availableTabs.map((t) => {
-            const active = selection?.marketType === t
+            const active = activeTab === t
             return (
               <button
                 key={t}
                 type="button"
-                onClick={() => setSelection(null)}
+                onClick={() => setActiveTab(t)}
                 className={cn(
                   "shrink-0 rounded-lg border px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors",
                   active
@@ -129,7 +130,7 @@ export function BettingInterface({
           })}
         </div>
 
-        {selection?.marketType === "scorer_minute_range" ? (
+        {activeTab === "scorer_minute_range" ? (
           <ScorerMinuteRange
             scorerMarket={scorerMarket}
             disabled={!canBet}
@@ -138,10 +139,12 @@ export function BettingInterface({
           />
         ) : (
           <OutcomeGrid
-            market={marketByType.get((selection?.marketType as MarketType) ?? availableTabs[0])}
+            market={marketByType.get(activeTab as MarketType)}
             disabled={!canBet}
             selectedKey={
-              selection ? String(selection.payload.__key ?? selection.label) : null
+              selection && selection.marketType === activeTab
+                ? String(selection.payload.__key ?? selection.label)
+                : null
             }
             onPick={pick}
           />
