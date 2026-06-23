@@ -72,7 +72,7 @@ export function BettingCombined({ balance }: { balance: number }) {
 
   const payout = Math.round(stake * combinedOdds)
   const profit = Math.round(stake * (combinedOdds - 1))
-  const canSubmit = selections.length >= 2 && selections.length <= 8 && stake > 0 && stake <= balance
+  const canSubmit = selections.length >= 2 && selections.length <= 5 && stake > 0 && stake <= balance
 
   function isSelected(matchId: number) { return selections.some(s => s.matchId === matchId) }
 
@@ -173,7 +173,7 @@ export function BettingCombined({ balance }: { balance: number }) {
         {selections.length >= 2 && <Badge className="bg-gold/20 text-gold">x{selections.length}</Badge>}
       </div>
       <p className="text-sm text-muted-foreground">
-        Choisis 2 à 8 événements (matchs différents, n&apos;importe quel marché). Tous gagnants pour remporter.
+        Choisis 2 à 5 événements (matchs différents, n&apos;importe quel marché). Tous gagnants pour remporter.
       </p>
 
       <div className="flex flex-col gap-2 max-h-[480px] overflow-y-auto pr-0.5">

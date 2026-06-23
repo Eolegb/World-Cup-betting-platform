@@ -61,35 +61,31 @@ export default async function MatchDetailPage({
             <StatusPill status={m.status} hasStarted={hasStarted} />
           </div>
 
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex flex-1 items-center gap-3">
-              <span className="text-3xl">{homeFlag}</span>
-              <div>
-                <p className="font-heading text-xl text-card-foreground">{m.homeTeam}</p>
-              </div>
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
+            <div className="flex flex-1 items-center gap-2 sm:gap-3 min-w-0">
+              <span className="text-2xl sm:text-3xl shrink-0">{homeFlag}</span>
+              <p className="font-heading text-base sm:text-xl text-card-foreground truncate">{m.homeTeam}</p>
             </div>
 
             {isFinished ? (
-              <div className="flex items-center gap-3">
-                <span className="font-heading text-3xl tabular text-card-foreground">{m.homeScore}</span>
-                <span className="text-xl text-muted-foreground">-</span>
-                <span className="font-heading text-3xl tabular text-card-foreground">{m.awayScore}</span>
+              <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                <span className="font-heading text-2xl sm:text-3xl tabular text-card-foreground">{m.homeScore}</span>
+                <span className="text-lg sm:text-xl text-muted-foreground">-</span>
+                <span className="font-heading text-2xl sm:text-3xl tabular text-card-foreground">{m.awayScore}</span>
               </div>
             ) : isLive ? (
               <LiveScore homeScore={m.homeScore} awayScore={m.awayScore} kickoff={kickoffIso} isLive />
             ) : (
-              <div className="flex flex-col items-center gap-1">
-                <span className="font-heading text-2xl tabular text-muted-foreground">VS</span>
+              <div className="flex flex-col items-center gap-1 shrink-0">
+                <span className="font-heading text-xl sm:text-2xl tabular text-muted-foreground">VS</span>
                 {canBet && <Countdown kickoff={kickoffIso} />}
                 {!canBet && !isFinished && <span className="text-xs text-live">En cours</span>}
               </div>
             )}
 
-            <div className="flex flex-1 items-center justify-end gap-3 text-right">
-              <div>
-                <p className="font-heading text-xl text-card-foreground">{m.awayTeam}</p>
-              </div>
-              <span className="text-3xl">{awayFlag}</span>
+            <div className="flex flex-1 items-center justify-end gap-2 sm:gap-3 text-right min-w-0">
+              <p className="font-heading text-base sm:text-xl text-card-foreground truncate">{m.awayTeam}</p>
+              <span className="text-2xl sm:text-3xl shrink-0">{awayFlag}</span>
             </div>
           </div>
 
@@ -142,19 +138,21 @@ export default async function MatchDetailPage({
             <div className="flex flex-col gap-2">
               {allBets.slice(0, 10).map((b: any) => (
                 <div key={b.betId ?? b.id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-2">
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <Avatar name={b.displayName ?? "?"} size="sm" avatarColor={b.avatarColor} />
-                    <div>
-                      <p className="text-sm font-medium text-card-foreground">{b.displayName}</p>
-                      <p className="text-xs text-muted-foreground">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-card-foreground truncate">{b.displayName}</p>
+                      <p className="text-xs text-muted-foreground truncate">
                         {isScheduled ? `a parié sur ${b.marketType === "combined" ? "un combiné" : b.label?.split(":")[0] ?? "un pari"}` : b.label}
                       </p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-heading text-sm tabular text-gold">{formatMoney(b.stake ?? 0)}</p>
-                    <p className="text-xs text-muted-foreground">Cote {formatOdds(b.odds ?? 1)}</p>
-                  </div>
+                  {b.stake != null && b.odds != null && (
+                    <div className="text-right shrink-0 ml-2">
+                      <p className="font-heading text-sm tabular text-gold">{formatMoney(b.stake)}</p>
+                      <p className="text-xs text-muted-foreground">Cote {formatOdds(b.odds)}</p>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

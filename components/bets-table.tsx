@@ -182,12 +182,12 @@ export function BetsTable({ bets: allBets, totalBets, wonCount, lostCount, pendi
           return (
             <div
               key={b.betId}
-              className={`rounded-xl border bg-card overflow-hidden ${
+              className={`rounded-xl border bg-card ${
                 isWon ? "border-primary/30" : isLost ? "border-destructive/20" : "border-border"
               }`}
             >
               {/* Status bar */}
-              <div className={`h-1 w-full ${isWon ? "bg-primary" : isLost ? "bg-destructive" : "bg-yellow-400"}`} />
+              <div className={`h-1 w-full rounded-t-xl ${isWon ? "bg-primary" : isLost ? "bg-destructive" : "bg-yellow-400"}`} />
 
               <div className="flex items-start gap-3 p-3">
                 {/* Left: info */}
