@@ -7,6 +7,7 @@ import { formatMoney } from "@/lib/format"
 import { SignOutButton } from "@/components/sign-out-button"
 import { AvatarUpload } from "@/components/avatar-upload"
 import { Trophy, Home, Ticket, Crown, ShieldCheck, Coins } from "lucide-react"
+import { PushNotificationToggle } from "@/components/push-toggle"
 
 type NavProps = {
   displayName: string
@@ -73,6 +74,7 @@ export function AppNav({ displayName, balance, isAdmin, image }: NavProps) {
               </div>
             </div>
           )}
+          <PushNotificationToggle />
           <AvatarUpload name={displayName} currentImage={image ?? null} size="sm" />
           <span className="hidden sm:block text-sm text-muted-foreground max-w-[10rem] truncate" title={displayName}>
             {displayName}

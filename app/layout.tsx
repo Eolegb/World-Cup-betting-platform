@@ -27,6 +27,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr" className="bg-background">
+      <head>
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
+      </head>
       <body className="font-sans antialiased">
         {children}
         <ServiceWorkerRegister />

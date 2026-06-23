@@ -1,8 +1,10 @@
 {
+  "id": "/",
   "name": "BetRod - Coupe du Monde 2026",
   "short_name": "BetRod",
   "description": "Plateforme de paris conviviale entre amis pour la Coupe du Monde 2026",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#13241c",
   "theme_color": "#13241c",

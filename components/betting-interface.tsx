@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 import { formatMoney, formatOdds } from "@/lib/format"
 import { MARKET_LABELS, scorerMinuteRangeOdds, type Market, type MarketType } from "@/lib/markets"
 import { placeBet } from "@/app/actions/bets"
-import { Coins, Target, Timer, X, Sparkles, ChevronDown } from "lucide-react"
+import { Coins, Target, Timer, X, Sparkles } from "lucide-react"
 
 type Selection = {
   marketType: MarketType
@@ -54,8 +54,7 @@ export function BettingInterface({
     return map
   }, [markets])
 
-  const availableTabs = useMemo(() => TAB_ORDER.filter((t) => marketByType.has(t) || t === "scorer_minute_range"), [marketByType])
-  const [activeTab, setActiveTab] = useState<string>(availableTabs[0] ?? "")
+  const availableTabs = TAB_ORDER.filter((t) => marketByType.has(t) || t === "scorer_minute_range")
   const scorerMarket = marketByType.get("anytime_scorer")
 
   function pick(marketType: MarketType, label: string, odds: number, payload: Record<string, unknown>) {
@@ -91,8 +90,8 @@ export function BettingInterface({
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-[1fr_280px] lg:grid-cols-[1fr_320px] min-w-0 overflow-x-hidden">
-      <div className="rounded-3xl border border-border/50 glass p-3 sm:p-6 animate-scale-in">
+    <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="rounded-2xl border border-primary/20 bg-card p-4 sm:p-6">
         <div className="mb-4 flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
             <Coins className="h-4 w-4 text-primary" />
@@ -109,49 +108,44 @@ export function BettingInterface({
           </div>
         )}
 
-        {/* Scrollable pill tabs — same on mobile and desktop */}
-        <div className="overflow-x-auto scrollbar-none -mx-1 px-1 mb-4">
-          <div className="flex gap-1.5 flex-nowrap pb-1">
-            {availableTabs.map((t) => (
+        <div className="mb-4 flex gap-1.5 overflow-x-auto scrollbar-none flex-nowrap pb-1">
+          {availableTabs.map((t) => {
+            const active = selection?.marketType === t
+            return (
               <button
                 key={t}
                 type="button"
-                onClick={() => setActiveTab(t)}
+                onClick={() => setSelection(null)}
                 className={cn(
-                  "shrink-0 rounded-full px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors",
-                  activeTab === t
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-secondary/70 text-muted-foreground hover:text-foreground hover:bg-secondary"
+                  "shrink-0 rounded-lg border px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors",
+                  active
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground"
                 )}
               >
                 {MARKET_LABELS[t as MarketType] ?? t}
               </button>
-            ))}
-          </div>
+            )
+          })}
         </div>
 
-        {/* Content for active tab */}
-        <div className="min-w-0">
-          {activeTab === "scorer_minute_range" ? (
-            <ScorerMinuteRange
-              scorerMarket={scorerMarket}
-              disabled={!canBet}
-              current={selection}
-              onPick={(sel) => setSelection(sel)}
-            />
-          ) : (
-            <OutcomeGrid
-              market={marketByType.get(activeTab as MarketType)}
-              disabled={!canBet}
-              selectedKey={
-                selection && selection.marketType === activeTab
-                  ? String(selection.payload.__key ?? selection.label)
-                  : null
-              }
-              onPick={pick}
-            />
-          )}
-        </div>
+        {selection?.marketType === "scorer_minute_range" ? (
+          <ScorerMinuteRange
+            scorerMarket={scorerMarket}
+            disabled={!canBet}
+            current={selection}
+            onPick={(sel) => setSelection(sel)}
+          />
+        ) : (
+          <OutcomeGrid
+            market={marketByType.get((selection?.marketType as MarketType) ?? availableTabs[0])}
+            disabled={!canBet}
+            selectedKey={
+              selection ? String(selection.payload.__key ?? selection.label) : null
+            }
+            onPick={pick}
+          />
+        )}
       </div>
 
       <BetSlip
@@ -182,24 +176,32 @@ function OutcomeGrid({
   if (!market) return null
 
   return (
-    <div className="relative">
-      <select
-        value={selectedKey ?? ""}
-        disabled={disabled}
-        onChange={e => {
-          const o = market.outcomes.find(o => o.key === e.target.value)
-          if (o) onPick(market.type, `${MARKET_LABELS[market.type]}: ${o.label}`, o.odds, { ...o.payload, __key: o.key })
-        }}
-        className="w-full appearance-none rounded-xl border border-border bg-popover px-4 py-3 pr-10 text-sm font-medium text-foreground focus:border-primary focus:outline-none disabled:opacity-40 cursor-pointer"
-      >
-        <option value="" className="text-muted-foreground">— Choisir —</option>
-        {market.outcomes.map((o) => (
-          <option key={o.key} value={o.key}>
-            {o.label} — ×{formatOdds(o.odds)}
-          </option>
-        ))}
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <div className="flex flex-col gap-1.5">
+      {market.outcomes.map((o) => {
+        const active = selectedKey === o.key
+        return (
+          <button
+            key={o.key}
+            type="button"
+            disabled={disabled}
+            onClick={() => onPick(market.type, `${MARKET_LABELS[market.type]}: ${o.label}`, o.odds, { ...o.payload, __key: o.key })}
+            className={cn(
+              "flex items-center justify-between rounded-xl px-4 py-3 text-left transition-all disabled:opacity-40",
+              active
+                ? "bg-primary/10 border border-primary/50"
+                : "bg-card border border-border hover:border-primary/30 hover:bg-secondary/30",
+            )}
+          >
+            <span className="text-sm font-medium text-card-foreground">{o.label}</span>
+            <span className={cn(
+              "font-heading text-lg tabular",
+              active ? "text-primary" : "text-gold"
+            )}>
+              {formatOdds(o.odds)}
+            </span>
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -337,7 +339,7 @@ function BetSlip({
 
   return (
     <aside className="lg:sticky lg:top-20 lg:self-start">
-      <div className="rounded-3xl border border-gold/20 glass-strong p-4 shadow-lg shadow-gold/5">
+      <div className="rounded-2xl border border-border bg-card p-4">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="flex items-center gap-2 font-heading text-base text-card-foreground">
             <Coins className="h-4 w-4 text-gold" />
