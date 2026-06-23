@@ -109,25 +109,18 @@ export function BettingInterface({
           </div>
         )}
 
-        <div className="mb-4 flex gap-1.5 overflow-x-auto scrollbar-none flex-nowrap pb-1">
-          {availableTabs.map((t) => {
-            const active = activeTab === t
-            return (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setActiveTab(t)}
-                className={cn(
-                  "shrink-0 rounded-lg border px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors",
-                  active
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground"
-                )}
-              >
-                {MARKET_LABELS[t as MarketType] ?? t}
-              </button>
-            )
-          })}
+        <div className="relative mb-4">
+          <select
+            value={activeTab}
+            onChange={e => setActiveTab(e.target.value)}
+            disabled={!canBet}
+            className="w-full appearance-none rounded-xl border border-border bg-card px-4 py-3 pr-10 text-sm font-medium text-foreground focus:border-primary focus:outline-none disabled:opacity-50"
+          >
+            {availableTabs.map((t) => (
+              <option key={t} value={t}>{MARKET_LABELS[t as MarketType] ?? t}</option>
+            ))}
+          </select>
+          <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
         </div>
 
         {activeTab === "scorer_minute_range" ? (

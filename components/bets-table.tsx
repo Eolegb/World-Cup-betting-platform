@@ -107,7 +107,7 @@ export function BetsTable({ bets: allBets, totalBets, wonCount, lostCount, pendi
           <span>·</span>
           <span className="text-destructive font-medium">{lostCount} perdus</span>
           <span>·</span>
-          <span className="text-yellow-400 font-medium">{pendingCount} en cours</span>
+          <span className="font-medium">{pendingCount} en cours</span>
           <button
             onClick={() => exportCSV(filtered)}
             className="flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-1.5 text-sm font-medium text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors"
@@ -187,7 +187,7 @@ export function BetsTable({ bets: allBets, totalBets, wonCount, lostCount, pendi
               }`}
             >
               {/* Status bar */}
-              <div className={`h-1 w-full rounded-t-xl ${isWon ? "bg-primary" : isLost ? "bg-destructive" : "bg-yellow-400"}`} />
+              <div className={`h-1 w-full rounded-t-xl ${isWon ? "bg-primary" : isLost ? "bg-destructive" : "bg-muted"}`} />
 
               <div className="flex items-start gap-3 p-3">
                 {/* Left: info */}
@@ -234,7 +234,7 @@ export function BetsTable({ bets: allBets, totalBets, wonCount, lostCount, pendi
                 {/* Right: status + actions */}
                 <div className="flex flex-col items-end gap-2 shrink-0">
                   <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                    isWon ? "bg-primary/20 text-primary" : isLost ? "bg-destructive/15 text-destructive" : "bg-yellow-400/15 text-yellow-400"
+                    isWon ? "bg-primary/20 text-primary" : isLost ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"
                   }`}>
                     {isWon ? "✅ Gagné" : isLost ? "❌ Perdu" : "⏳ En cours"}
                   </span>
