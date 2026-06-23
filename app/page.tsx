@@ -58,11 +58,13 @@ export default async function DashboardPage() {
                 </div>
 
                 <div className="sm:ml-auto grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {!profile.isAdmin && (
                   <div className="rounded-2xl border border-gold/20 bg-gold/5 p-3 text-center">
                     <Zap className="mx-auto h-4 w-4 text-gold mb-1" />
                     <p className="font-heading text-xl tabular text-gold">{formatMoney(profile.balance)}</p>
                     <p className="text-[10px] text-muted-foreground">Cagnotte</p>
                   </div>
+                  )}
                   <div className="rounded-2xl border border-border/40 bg-secondary/20 p-3 text-center">
                     <span className="text-lg">{inProgress.length}</span>
                     <p className="text-[10px] text-muted-foreground">En cours</p>

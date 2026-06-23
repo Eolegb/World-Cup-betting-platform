@@ -218,7 +218,7 @@ function StatCard({
   const accentMap = {
     default: "text-primary",
     live: "text-live",
-    pending: "text-yellow-400",
+    pending: "text-muted-foreground",
     won: "text-primary",
     lost: "text-destructive",
   }
@@ -275,8 +275,8 @@ function MatchAdminRow({
             {new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(m.kickoff))}
           </span>
           {pendingBets > 0 && (
-            <span className="inline-flex items-center gap-0.5 rounded-full bg-yellow-400/10 px-1.5 py-0.5 text-[10px] font-medium text-yellow-400">
-              🎫 {pendingBets} en attente
+            <span className="inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+              {pendingBets} en attente
             </span>
           )}
         </div>

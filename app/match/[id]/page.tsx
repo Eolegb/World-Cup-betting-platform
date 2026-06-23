@@ -142,7 +142,7 @@ export default async function MatchDetailPage({
               {allBets.slice(0, 10).map((b: any) => (
                 <div key={b.betId ?? b.id} className="flex items-center justify-between rounded-lg bg-secondary/50 px-3 py-2">
                   <div className="flex items-center gap-3 min-w-0">
-                    <Avatar name={b.displayName ?? "?"} size="sm" avatarColor={b.avatarColor} />
+                    <Avatar name={b.displayName ?? "?"} image={b.image ?? null} size="sm" avatarColor={b.avatarColor} />
                     <div className="min-w-0">
                       <p className="text-sm font-medium text-card-foreground truncate">{b.displayName}</p>
                       <p className="text-xs text-muted-foreground truncate">

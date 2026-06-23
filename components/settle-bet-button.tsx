@@ -12,7 +12,7 @@ export function SettleBetButton({ betId }: { betId: number }) {
     try {
       const res = await settleSingleBet(betId)
       if (res.ok) {
-        toast.success(res.status === "won" ? `✅ Gagné ! +${res.payout}€` : "❌ Perdu.")
+        toast.success(res.status === "won" ? `Gagné ! +${res.payout}€` : "Perdu.")
       } else {
         toast.error(res.error)
       }

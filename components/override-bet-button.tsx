@@ -5,9 +5,9 @@ import { overrideBet } from "@/app/actions/override-bet"
 import { toast } from "sonner"
 
 const OPTIONS = [
-  { value: "won", label: "✅ Gagné" },
-  { value: "lost", label: "❌ Perdu" },
-  { value: "pending", label: "⏳ En cours" },
+  { value: "won", label: "Gagné" },
+  { value: "lost", label: "Perdu" },
+  { value: "pending", label: "En cours" },
 ]
 
 export function OverrideBetButton({ betId, currentStatus }: { betId: number; currentStatus: string }) {

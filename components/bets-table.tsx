@@ -141,9 +141,9 @@ export function BetsTable({ bets: allBets, totalBets, wonCount, lostCount, pendi
         <div className="flex gap-2 flex-wrap">
           <StyledSelect value={filterStatus} onChange={setFilterStatus}>
             <option value="">Tous statuts</option>
-            <option value="pending">⏳ En cours</option>
-            <option value="won">✅ Gagnés</option>
-            <option value="lost">❌ Perdus</option>
+            <option value="pending">En cours</option>
+            <option value="won">Gagnés</option>
+            <option value="lost">Perdus</option>
           </StyledSelect>
           <StyledSelect value={filterUser} onChange={setFilterUser}>
             <option value="">Tous les joueurs</option>
@@ -236,7 +236,7 @@ export function BetsTable({ bets: allBets, totalBets, wonCount, lostCount, pendi
                   <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
                     isWon ? "bg-primary/20 text-primary" : isLost ? "bg-destructive/15 text-destructive" : "bg-muted text-muted-foreground"
                   }`}>
-                    {isWon ? "✅ Gagné" : isLost ? "❌ Perdu" : "⏳ En cours"}
+                    {isWon ? "Gagné" : isLost ? "Perdu" : "En cours"}
                   </span>
                   <div className="flex items-center gap-1.5">
                     <OverrideBetButton betId={b.betId} currentStatus={b.status} />
