@@ -6,15 +6,10 @@ import { fetchGames, parseScorers } from "@/lib/worldcup26"
 
 const WC26_TOKEN = process.env.NEXT_PUBLIC_WORLDCUP26_TOKEN
 
-/**
- * Récupère les scores en direct depuis worldcup26.ir directement depuis le browser.
- * Pas de timeout Vercel — c'est le browser qui fait l'appel HTTP.
- * - Matchs terminés  → saveBatchResults (score final + règlement des paris)
- * - Matchs en cours  → saveBatchResults (score intermédiaire, pas de règlement)
- */
-export function useLiveScores(seconds = 45) {
+export function useLiveScores(seconds = 60) {
   const router = useRouter()
   const mounted = useRef(false)
+  const lastResult = useRef<string>("")
 
   useEffect(() => {
     if (mounted.current) return
@@ -22,23 +17,11 @@ export function useLiveScores(seconds = 45) {
 
     async function tick() {
       try {
-        // Déclencher le sync serveur (scheduled → live, rattrapage paris)
-        const syncRes = await fetch("/api/sync/live")
-        if (syncRes.ok) {
-          const syncData = await syncRes.json()
-          if (!syncData.ok) {
-            console.warn("[LiveScores] Sync/live failed:", syncData.error)
-          }
-        }
-
         const games = await fetchGames(WC26_TOKEN)
 
-        // Matchs terminés (score final)
         const finished = games.filter(
           (g) => g.finished === "TRUE" && g.home_score !== "null" && g.home_score !== "",
         )
-
-        // Matchs en cours (score intermédiaire)
         const inProgress = games.filter(
           (g) =>
             g.finished === "FALSE" &&
@@ -72,17 +55,20 @@ export function useLiveScores(seconds = 45) {
           })),
         ]
 
+        const fingerprint = JSON.stringify(toSave)
+        if (fingerprint === lastResult.current) return
+        lastResult.current = fingerprint
+
         if (toSave.length > 0) {
           const { saveBatchResults } = await import("@/app/actions/save-batch-results")
           const result = await saveBatchResults(toSave)
           if (result.ok && (result.updated > 0 || result.settled > 0)) {
-            console.log(`[LiveScores] ${result.updated} mis à jour, ${result.settled} paris réglés`)
+            console.log(`[LiveScores] ${result.updated} upd, ${result.settled} settled`)
+            router.refresh()
           }
         }
       } catch {
         // silent
-      } finally {
-        router.refresh()
       }
     }
 

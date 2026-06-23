@@ -12,14 +12,14 @@ const fetcher = (url: string) => fetch(url).then(r => { if (!r.ok) throw new Err
 type OddsFlash = { homeWin?: number; draw?: number; awayWin?: number; over25?: number; under25?: number }
 
 export function OddsDisplay({ matchId, status, homeTeam, awayTeam, className }: { matchId: number; status?: string; homeTeam?: string; awayTeam?: string; className?: string }) {
-  const isFinished = status === "finished" || status === "live"
+  const isFinished = status === "finished"
 
   const { data, error, isValidating, mutate } = useSWR<NormalizedOdds>(
     isFinished ? null : `/api/odds/${matchId}`,
     fetcher,
     {
       refreshInterval: isFinished ? 0 : 30000,
-      revalidateOnFocus: true,
+      revalidateOnFocus: false,
       dedupingInterval: 10000,
       errorRetryCount: 3,
       errorRetryInterval: 5000,
@@ -28,7 +28,7 @@ export function OddsDisplay({ matchId, status, homeTeam, awayTeam, className }: 
 
   const [flash, setFlash] = useState<OddsFlash>({})
   const prev = useRef<NormalizedOdds | null>(null)
-  const errorCount = useRef(0)
+  const flashTimer = useRef<ReturnType<typeof setTimeout>>()
 
   useEffect(() => {
     if (data && prev.current) {
@@ -40,23 +40,17 @@ export function OddsDisplay({ matchId, status, homeTeam, awayTeam, className }: 
       if (prev.current.under25 !== data.under25) changed.under25 = data.under25
       if (Object.keys(changed).length > 0) {
         setFlash(changed)
-        setTimeout(() => setFlash({}), 1500)
+        clearTimeout(flashTimer.current)
+        flashTimer.current = setTimeout(() => setFlash({}), 1500)
       }
     }
     prev.current = data ?? null
+    return () => clearTimeout(flashTimer.current)
   }, [data])
 
-  // Tab visibility: pause/resume polling and refetch on return
-  useEffect(() => {
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") mutate()
-    }
-    document.addEventListener("visibilitychange", onVisibility)
-    return () => document.removeEventListener("visibilitychange", onVisibility)
-  }, [mutate])
-
   // Error tracking
-  useEffect(() => { if (error) errorCount.current++ }, [error])
+  const errorCount = useRef(0)
+  useEffect(() => { if (error) errorCount.current++; else errorCount.current = 0 }, [error])
 
   if (error && errorCount.current >= 3) {
     return (
@@ -68,7 +62,7 @@ export function OddsDisplay({ matchId, status, homeTeam, awayTeam, className }: 
     )
   }
 
-  if (error) return <OddsSkeleton className={className} />
+  if (!data && error) return <OddsSkeleton className={className} />
   if (!data) return <OddsSkeleton className={className} />
 
   const odds = data
