@@ -58,9 +58,9 @@ export function buildMarkets(match: MatchLike, players: string[], odds: OddsInpu
     type: "match_result",
     label: "Resultat du match",
     outcomes: [
-      { key: "home", label: `${homeFlag} ${match.homeTeam} gagne`, odds: clampOdds(o.homeWin), payload: { side: "home" } },
-      { key: "draw", label: "🤝 Match nul", odds: clampOdds(o.draw), payload: { side: "draw" } },
-      { key: "away", label: `${awayFlag} ${match.awayTeam} gagne`, odds: clampOdds(o.awayWin), payload: { side: "away" } },
+      { key: "home", label: `${homeFlag} ${match.homeTeam}`, odds: clampOdds(o.homeWin), payload: { side: "home" } },
+      { key: "draw", label: "🤝 Nul", odds: clampOdds(o.draw), payload: { side: "draw" } },
+      { key: "away", label: `${awayFlag} ${match.awayTeam}`, odds: clampOdds(o.awayWin), payload: { side: "away" } },
     ],
   })
 
