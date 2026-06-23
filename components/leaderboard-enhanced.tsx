@@ -1,174 +1,207 @@
 "use client"
 
-import { Avatar } from "@/components/avatar"
 import { formatMoney } from "@/lib/format"
 import { getBadgeEmoji } from "@/lib/gamification"
 import type { LeaderRow } from "@/lib/queries"
 
-export function LeaderboardEnhanced({
-  rows,
-  myUserId,
-}: {
-  rows: LeaderRow[]
-  myUserId: string
-}) {
+const AVATAR_COLORS = [
+  "#e74c3c", "#3498db", "#2ecc71", "#f39c12",
+  "#9b59b6", "#1abc9c", "#e67e22", "#34495e",
+]
+function hashColor(name: string): string {
+  let h = 0
+  for (let i = 0; i < name.length; i++) h = name.charCodeAt(i) + ((h << 5) - h)
+  return AVATAR_COLORS[Math.abs(h) % AVATAR_COLORS.length]
+}
+function getInitials(name: string): string {
+  return name.split(" ").map(w => w[0]).join("").slice(0, 2).toUpperCase()
+}
+
+export function LeaderboardEnhanced({ rows, myUserId }: { rows: LeaderRow[]; myUserId: string }) {
   if (!rows.length) return null
 
   const top3 = rows.slice(0, 3)
+  // Ordre podium : 2e, 1er, 3e
+  const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean) as LeaderRow[]
+  const podiumRanks = top3[1] ? [2, 1, 3] : top3[0] ? [1] : []
 
   return (
-    <>
-      <style>{`
-        @keyframes podium-in {
-          from { opacity: 0; transform: scale(0.85); }
-          to { opacity: 1; transform: scale(1); }
-        }
-        .podium-1 { animation: podium-in 0.5s 0.1s ease-out both; }
-        .podium-2 { animation: podium-in 0.5s 0s ease-out both; }
-        .podium-3 { animation: podium-in 0.5s 0.2s ease-out both; }
-      `}</style>
-
-      {/* Podium - mobile */}
-      <div className="sm:hidden mb-6 flex flex-col gap-2">
-        {top3[0] && <PodiumCard rank={1} row={top3[0]} isMe={top3[0].userId === myUserId} height="h-32" isFirst />}
-        {top3.length > 1 && (
-          <div className="grid grid-cols-2 gap-2">
-            {top3[1] && <PodiumCard rank={2} row={top3[1]} isMe={top3[1].userId === myUserId} height="h-28" />}
-            {top3[2] && <PodiumCard rank={3} row={top3[2]} isMe={top3[2].userId === myUserId} height="h-24" />}
-          </div>
-        )}
+    <div className="space-y-4">
+      {/* ------------------------------------------------------------------ */}
+      {/* Podium                                                               */}
+      {/* ------------------------------------------------------------------ */}
+      <div className="grid grid-cols-3 items-end gap-2 sm:gap-3">
+        {podiumOrder.map((row, i) => {
+          const rank = podiumRanks[i]
+          return (
+            <PodiumCard
+              key={row.userId}
+              rank={rank}
+              row={row}
+              isMe={row.userId === myUserId}
+            />
+          )
+        })}
       </div>
 
-      {/* Podium - desktop */}
-      <div className="hidden sm:grid mb-6 grid-cols-3 items-end gap-2 sm:gap-3">
-        {top3[1] && <PodiumCard rank={2} row={top3[1]} isMe={top3[1]?.userId === myUserId} className="podium-2" height="h-28 sm:h-32" />}
-        {top3[0] && <PodiumCard rank={1} row={top3[0]} isMe={top3[0]?.userId === myUserId} className="podium-1" height="h-36 sm:h-40" isFirst />}
-        {top3[2] && <PodiumCard rank={3} row={top3[2]} isMe={top3[2]?.userId === myUserId} className="podium-3" height="h-24 sm:h-28" />}
-      </div>
+      {/* ------------------------------------------------------------------ */}
+      {/* Full leaderboard list                                                */}
+      {/* ------------------------------------------------------------------ */}
+      <div className="rounded-2xl border border-border/40 overflow-hidden bg-card/60 backdrop-blur-sm">
+        <div className="divide-y divide-border/30">
+          {rows.map((r, i) => {
+            const rank = i + 1
+            const isMe = r.userId === myUserId
+            const color = r.avatarColor || hashColor(r.displayName)
+            return (
+              <div
+                key={r.userId}
+                className={`flex items-center gap-3 px-4 py-3 transition-colors hover:bg-muted/40 ${isMe ? "bg-gold/5" : ""}`}
+              >
+                {/* Rank */}
+                <div className="w-7 text-center shrink-0">
+                  {rank === 1 ? (
+                    <span className="text-base">🥇</span>
+                  ) : rank === 2 ? (
+                    <span className="text-base">🥈</span>
+                  ) : rank === 3 ? (
+                    <span className="text-base">🥉</span>
+                  ) : (
+                    <span className="text-xs font-medium text-muted-foreground">#{rank}</span>
+                  )}
+                </div>
 
-      {/* Full leaderboard list */}
-      <div className="rounded-2xl border border-border/40 glass overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full caption-bottom text-sm">
-            <thead>
-              <tr className="border-b border-border/50">
-                <th className="h-9 px-3 text-left font-medium text-muted-foreground text-xs">#</th>
-                <th className="h-9 px-3 text-left font-medium text-muted-foreground text-xs">Joueur</th>
-                <th className="h-9 px-3 text-right font-medium text-muted-foreground text-xs">Solde</th>
-                <th className="h-9 px-3 text-right font-medium text-muted-foreground text-xs">G/P</th>
-                <th className="h-9 px-3 text-right font-medium text-muted-foreground text-xs">Série</th>
-                <th className="h-9 px-3 text-right font-medium text-muted-foreground text-xs">Badges</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => {
-                const rank = i + 1
-                const isMe = r.userId === myUserId
-                const isTop3 = rank <= 3
-                return (
-                  <tr
-                    key={r.userId}
-                    className={`border-b border-border/30 transition-colors hover:bg-muted/50 ${
-                      isMe ? "bg-gold/5" : ""
-                    }`}
-                  >
-                    <td className="px-3 py-2.5 font-heading tabular text-xs text-muted-foreground">
-                      {rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `#${rank}`}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <div className="flex items-center gap-2">
-                        <Avatar
-                          name={r.displayName}
-                          image={r.image}
-                          avatarColor={r.avatarColor}
-                          size="sm"
-                        />
-                        <span className={`text-sm font-medium truncate max-w-[120px] ${isMe ? "text-gold" : "text-foreground"}`}>
-                          {r.displayName}
-                          {isMe && <span className="ml-1 text-[9px] text-gold">(toi)</span>}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-3 py-2.5 text-right font-heading tabular text-sm text-foreground">
-                      {formatMoney(r.balance)}
-                    </td>
-                    <td className="px-3 py-2.5 text-right tabular text-xs">
-                      <span className="text-primary">{r.won}G</span>
-                      <span className="text-muted-foreground"> / </span>
-                      <span className="text-destructive">{r.lost}P</span>
-                    </td>
-                    <td className="px-3 py-2.5 text-right tabular text-xs">
-                      {r.streak > 0 ? (
-                        <span className="text-orange-400">🔥{r.streak}</span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5 text-right text-xs">
-                      {r.badges.length > 0 ? (
-                        <span className="inline-flex gap-0.5">
-                          {r.badges.slice(0, 3).map((b) => (
-                            <span key={b} title={b}>{getBadgeEmoji(b)}</span>
-                          ))}
-                        </span>
-                      ) : (
-                        <span className="text-muted-foreground">-</span>
-                      )}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
+                {/* Avatar */}
+                <div className="shrink-0">
+                  {r.image ? (
+                    <img src={r.image} alt={r.displayName} className="h-8 w-8 rounded-full object-cover" />
+                  ) : (
+                    <div
+                      className="h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
+                      style={{ backgroundColor: color }}
+                    >
+                      {getInitials(r.displayName)}
+                    </div>
+                  )}
+                </div>
+
+                {/* Name */}
+                <div className="flex-1 min-w-0">
+                  <span className={`text-sm font-medium truncate block ${isMe ? "text-gold" : "text-foreground"}`}>
+                    {r.displayName}
+                    {isMe && <span className="ml-1 text-[9px] text-gold/70">(toi)</span>}
+                  </span>
+                  <div className="flex items-center gap-2 mt-0.5">
+                    <span className="text-[10px] text-primary">{r.won}G</span>
+                    <span className="text-[10px] text-muted-foreground">/</span>
+                    <span className="text-[10px] text-destructive">{r.lost}P</span>
+                    {r.streak > 0 && <span className="text-[10px] text-orange-400">🔥{r.streak}</span>}
+                  </div>
+                </div>
+
+                {/* Balance */}
+                <div className="text-right shrink-0">
+                  <span className={`font-heading tabular text-sm ${isMe ? "text-gold" : "text-foreground"}`}>
+                    {formatMoney(r.balance)}
+                  </span>
+                  {r.badges.length > 0 && (
+                    <div className="flex justify-end gap-0.5 mt-0.5">
+                      {r.badges.slice(0, 3).map(b => (
+                        <span key={b} title={b} className="text-[11px]">{getBadgeEmoji(b)}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            )
+          })}
         </div>
       </div>
-    </>
+    </div>
   )
 }
 
-function PodiumCard({
-  rank,
-  row,
-  isMe,
-  className,
-  height,
-  isFirst,
-}: {
-  rank: number
-  row: LeaderRow | undefined
-  isMe: boolean
-  className?: string
-  height: string
-  isFirst?: boolean
-}) {
-  if (!row) {
-    return <div className={`${height} rounded-2xl border border-dashed border-border/40 bg-secondary/20`} />
-  }
+// ---------------------------------------------------------------------------
+// PodiumCard — avatar plein cadre, texte dans overlay bas
+// ---------------------------------------------------------------------------
 
-  const rankIcon = rank === 1 ? "👑" : rank === 2 ? "🥈" : "🥉"
-  const borderColor = rank === 1 ? "border-gold/40" : "border-border/40"
-  const bgColor = rank === 1 ? "bg-gold/5" : "bg-secondary/20"
-  const ringStyle = isFirst ? "ring-1 ring-gold/30" : isMe ? "ring-1 ring-gold/20" : ""
+const HEIGHTS: Record<1 | 2 | 3, string> = {
+  1: "h-56 sm:h-64",
+  2: "h-48 sm:h-56",
+  3: "h-40 sm:h-48",
+}
+
+const RANK_LABEL: Record<1 | 2 | 3, string> = {
+  1: "👑",
+  2: "🥈",
+  3: "🥉",
+}
+
+function PodiumCard({ rank, row, isMe }: { rank: number; row: LeaderRow; isMe: boolean }) {
+  const r = rank as 1 | 2 | 3
+  const height = HEIGHTS[r]
+  const rankLabel = RANK_LABEL[r]
+  const color = row.avatarColor || hashColor(row.displayName)
+  const isFirst = rank === 1
 
   return (
-    <div className={`${height} flex flex-col justify-center rounded-2xl border ${borderColor} ${bgColor} p-2 sm:p-3 ${ringStyle} ${className ?? ""}`}>
-      <div className="flex flex-col items-center gap-1 text-center">
-        <span className="text-lg sm:text-xl">{rankIcon}</span>
-        <Avatar name={row.displayName} image={row.image} avatarColor={row.avatarColor} size="sm" />
-        <div className="min-w-0">
-          <p className={`font-medium text-xs sm:text-sm truncate max-w-[80px] sm:max-w-[100px] text-foreground`}>
-            {row.displayName}
-            {isMe && <span className="ml-1 text-[8px] text-gold">(toi)</span>}
-          </p>
+    <div
+      className={`
+        relative ${height} rounded-2xl overflow-hidden
+        ${isFirst
+          ? "ring-2 ring-gold/50 shadow-lg shadow-gold/20"
+          : "ring-1 ring-border/40"}
+        ${isMe ? "ring-2 ring-gold/60" : ""}
+      `}
+    >
+      {/* Background : image ou initiales */}
+      {row.image ? (
+        <img
+          src={row.image}
+          alt={row.displayName}
+          className="absolute inset-0 h-full w-full object-cover object-top"
+        />
+      ) : (
+        <div
+          className="absolute inset-0 flex items-center justify-center"
+          style={{ backgroundColor: color }}
+        >
+          <span
+            className="font-heading font-bold text-white/20 select-none"
+            style={{ fontSize: "clamp(3rem, 8vw, 5rem)" }}
+          >
+            {getInitials(row.displayName)}
+          </span>
         </div>
-        <p className={`font-heading tabular text-sm sm:text-base text-gold`}>{formatMoney(row.balance)}</p>
-        <div className="flex items-center gap-1.5 text-[10px] sm:text-xs tabular">
-          <span className="text-primary">{row.won}G</span>
-          <span className="text-destructive">{row.lost}P</span>
+      )}
+
+      {/* Gradient overlay — du bas vers le milieu */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
+
+      {/* Rank badge — en haut à gauche */}
+      <div className="absolute top-2.5 left-2.5">
+        <span className={`text-xl ${isFirst ? "drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]" : ""}`}>
+          {rankLabel}
+        </span>
+      </div>
+
+      {/* Contenu bas — dans le gradient */}
+      <div className="absolute bottom-0 left-0 right-0 px-3 pb-3 pt-6">
+        <p className="font-medium text-xs sm:text-sm text-white truncate leading-tight">
+          {row.displayName}
+          {isMe && <span className="ml-1 text-[9px] text-gold">(toi)</span>}
+        </p>
+        <p className={`font-heading tabular text-sm sm:text-base mt-0.5 ${isFirst ? "text-gold" : "text-white/90"}`}>
+          {formatMoney(row.balance)}
+        </p>
+        <div className="flex items-center gap-2 mt-1">
+          <span className="text-[10px] text-primary font-medium">{row.won}G</span>
+          <span className="text-[10px] text-white/40">/</span>
+          <span className="text-[10px] text-destructive">{row.lost}P</span>
+          {row.streak > 0 && (
+            <span className="text-[10px] text-orange-400 ml-auto">🔥{row.streak}</span>
+          )}
         </div>
-        {row.streak > 0 && (
-          <span className="inline-flex items-center gap-0.5 rounded-full bg-orange-400/10 px-1.5 py-0.5 text-[10px] text-orange-400">🔥{row.streak}</span>
-        )}
       </div>
     </div>
   )
