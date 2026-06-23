@@ -12,6 +12,7 @@ import { formatMoney, betStatusLabel, formatOdds } from "@/lib/format"
 import { formatStage } from "@/lib/utils"
 import { Avatar } from "@/components/avatar"
 import { AdminFetchOddsButton } from "@/components/admin-fetch-odds-button"
+import { LineupPoller } from "@/components/lineup-poller"
 import { MapPin, Calendar, Clock, Activity, Users } from "lucide-react"
 import { Countdown } from "@/components/countdown"
 
@@ -114,6 +115,8 @@ export default async function MatchDetailPage({
           </div>
         </div>
       </div>
+
+      <LineupPoller homeTeam={m.homeTeam} awayTeam={m.awayTeam} kickoff={kickoffIso} />
 
       {/* Events + who bets what + my bets (compact, collapsible feel) */}
       <div className="mb-6 space-y-3">

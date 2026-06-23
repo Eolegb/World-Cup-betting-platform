@@ -244,15 +244,17 @@ async function fetchApiFootballEvents(fixtureId: number): Promise<FootballDataEv
 }
 
 // Also add a function to find api-football fixture IDs by team names
-export async function findApiFootballFixtureId(homeTeam: string, awayTeam: string): Promise<number | null> {
+export async function findApiFootballFixtureId(homeTeam: string, awayTeam: string, date?: string): Promise<number | null> {
   if (!hasApiFootballKey()) return null
-  const key = `apifoot:fix:${homeTeam}:${awayTeam}`
+  const dateKey = date ?? "any"
+  const key = `apifoot:fix:${homeTeam}:${awayTeam}:${dateKey}`
   const cached = getCached<number | null>(key)
   if (cached !== null && cached !== undefined) return cached
 
   try {
-    // Search api-football for fixtures matching these teams
-    const url = `${API_FOOTBALL_BASE}/fixtures?league=1&season=2026`
+    const url = date
+      ? `${API_FOOTBALL_BASE}/fixtures?date=${date}&league=1`
+      : `${API_FOOTBALL_BASE}/fixtures?league=1&season=2026`
     const res = await fetch(url, { headers: { "x-apisports-key": process.env.API_FOOTBALL_KEY! }, cache: "no-store" })
     if (!res.ok) { setCached(key, null, 3600000); return null }
 
@@ -268,6 +270,76 @@ export async function findApiFootballFixtureId(homeTeam: string, awayTeam: strin
     }
     setCached(key, null, 3600000)
     return null
+  } catch {
+    return null
+  }
+}
+
+// --- Lineups (api-football) -----------------------------------------------
+
+export type LineupPlayer = {
+  id: number
+  name: string
+  number: number
+  pos: string // "G", "D", "M", "F"
+  grid: string // "col:row"
+}
+
+export type TeamLineup = {
+  teamId: number
+  teamName: string
+  formation: string // "4-3-3", etc.
+  startXI: LineupPlayer[]
+  substitutes: LineupPlayer[]
+}
+
+export type MatchLineups = {
+  home: TeamLineup | null
+  away: TeamLineup | null
+}
+
+export async function fetchLineups(homeTeam: string, awayTeam: string, date?: string): Promise<MatchLineups | null> {
+  if (!hasApiFootballKey()) return null
+  const dateKey = date ?? "any"
+  const key = `apifoot:lineups:${homeTeam}:${awayTeam}:${dateKey}`
+  const cached = getCached<MatchLineups>(key)
+  if (cached) return cached
+
+  const fixtureId = await findApiFootballFixtureId(homeTeam, awayTeam, date)
+  if (!fixtureId) return null
+
+  try {
+    const url = `${API_FOOTBALL_BASE}/fixtures/lineups?fixture=${fixtureId}`
+    const res = await fetch(url, { headers: { "x-apisports-key": process.env.API_FOOTBALL_KEY! }, cache: "no-store" })
+    if (!res.ok) return null
+    const json = await res.json()
+    const raw: any[] = json?.response ?? []
+    if (!raw.length) return null
+
+    const mapPlayer = (p: any): LineupPlayer => ({
+      id: p.player.id,
+      name: p.player.name,
+      number: p.player.number,
+      pos: p.player.pos ?? "M",
+      grid: p.player.grid ?? "",
+    })
+
+    const result: MatchLineups = { home: null, away: null }
+    for (const t of raw) {
+      const lineup: TeamLineup = {
+        teamId: t.team.id,
+        teamName: t.team.name,
+        formation: t.formation ?? "",
+        startXI: (t.startXI ?? []).map(mapPlayer),
+        substitutes: (t.substitutes ?? []).map(mapPlayer),
+      }
+      if (t.team.name === homeTeam) result.home = lineup
+      else if (t.team.name === awayTeam) result.away = lineup
+    }
+
+    setCached(key, result, 3600000) // 1h cache
+    console.log(`[api-football] Lineups fetched for ${homeTeam} vs ${awayTeam}`)
+    return result
   } catch {
     return null
   }

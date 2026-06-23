@@ -21,7 +21,7 @@ export async function getMatchEvents(matchId: number): Promise<EventRow[]> {
   return db.select().from(matchEvent).where(eq(matchEvent.matchId, matchId)).orderBy(matchEvent.minute)
 }
 
-export function marketsForMatch(m: MatchRow, odds: OddsInputs = {}) {
+export function marketsForMatch(m: MatchRow, odds: OddsInputs = {}, starters?: Set<string>) {
   const matchLike: MatchLike = {
     id: m.id,
     homeTeam: m.homeTeam,
@@ -32,13 +32,12 @@ export function marketsForMatch(m: MatchRow, odds: OddsInputs = {}) {
   }
   const players = matchRoster(m.homeTeam, m.awayTeam)
 
-  // Use real odds from DB if available
   const storedOdds = (m as any).oddsJson as OddsInputs | null
   if (storedOdds) {
-    return buildMarkets(matchLike, players, { ...odds, ...storedOdds })
+    return buildMarkets(matchLike, players, { ...odds, ...storedOdds }, starters)
   }
 
-  return buildMarkets(matchLike, players, odds)
+  return buildMarkets(matchLike, players, odds, starters)
 }
 
 export async function getUserBets(userId: string) {

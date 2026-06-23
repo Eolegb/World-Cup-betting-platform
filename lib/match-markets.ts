@@ -47,7 +47,7 @@ const FALLBACK: Required<Omit<OddsInputs, "scorers">> = {
  * scorer markets; `scorers` odds come from the provider when available,
  * otherwise a heuristic baseline is used.
  */
-export function buildMarkets(match: MatchLike, players: string[], odds: OddsInputs = {}): Market[] {
+export function buildMarkets(match: MatchLike, players: string[], odds: OddsInputs = {}, starters?: Set<string>): Market[] {
   const o = { ...FALLBACK, ...odds }
   const markets: Market[] = []
 
@@ -106,16 +106,28 @@ export function buildMarkets(match: MatchLike, players: string[], odds: OddsInpu
     outcomes: [],
   })
 
-  // Anytime scorer + first scorer, tagged by team.
+  // Anytime scorer + first scorer, tagged by team. Lineup multipliers applied.
   const scorerOdds = odds.scorers ?? {}
   const anytime: Outcome[] = []
   const first: Outcome[] = []
   const homeRoster = new Set(rosterFor(match.homeTeam).map(p => p.toLowerCase()))
+  const startersNorm = starters ? new Set(Array.from(starters).map(s => s.toLowerCase().trim())) : null
   for (const p of players) {
     const base = scorerOdds[p] ?? getPlayerBaseOdds(p, players.indexOf(p))
     const team = homeRoster.has(p.toLowerCase()) ? "home" : "away"
-    anytime.push({ key: p, label: p, odds: clampOdds(base), payload: { player: p, team } })
-    first.push({ key: p, label: p, odds: clampOdds(base * 2.6), payload: { player: p, team } })
+
+    // Apply lineup multiplier
+    let multiplier = 1.0
+    if (startersNorm) {
+      if (startersNorm.has(p.toLowerCase().trim())) {
+        multiplier = 0.85 // starter → more likely to score
+      } else {
+        multiplier = 1.25 // bench/reserve → less likely
+      }
+    }
+
+    anytime.push({ key: p, label: p, odds: clampOdds(base * multiplier), payload: { player: p, team } })
+    first.push({ key: p, label: p, odds: clampOdds(base * 2.6 * multiplier), payload: { player: p, team } })
   }
   if (anytime.length) {
     markets.push({ type: "anytime_scorer", label: "Buteur", outcomes: anytime })
