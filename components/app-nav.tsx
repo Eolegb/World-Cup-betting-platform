@@ -6,8 +6,6 @@ import { cn } from "@/lib/utils"
 import { formatMoney } from "@/lib/format"
 import { SignOutButton } from "@/components/sign-out-button"
 import { AvatarUpload } from "@/components/avatar-upload"
-import { PushNotificationToggle } from "@/components/push-toggle"
-import { useScrollHide } from "@/lib/use-scroll-hide"
 import { Trophy, Home, Ticket, Crown, ShieldCheck, Coins } from "lucide-react"
 
 type NavProps = {
@@ -17,21 +15,25 @@ type NavProps = {
   image?: string | null
 }
 
-const LINKS = [
-  { href: "/", label: "Matchs", icon: Home },
-  { href: "/mes-paris", label: "Mes paris", icon: Ticket },
-  { href: "/classement", label: "Classement", icon: Crown },
-]
-
 export function AppNav({ displayName, balance, isAdmin, image }: NavProps) {
   const pathname = usePathname()
-  const hidden = useScrollHide()
-  const links = isAdmin ? [...LINKS, { href: "/admin", label: "Admin", icon: ShieldCheck }] : LINKS
+
+  const links = isAdmin
+    ? [
+        { href: "/", label: "Matchs", icon: Home },
+        { href: "/classement", label: "Classement", icon: Crown },
+        { href: "/admin", label: "Admin", icon: ShieldCheck },
+      ]
+    : [
+        { href: "/", label: "Matchs", icon: Home },
+        { href: "/mes-paris", label: "Mes paris", icon: Ticket },
+        { href: "/classement", label: "Classement", icon: Crown },
+      ]
 
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname.startsWith(href))
 
   return (
-    <header className={`sticky top-0 z-40 border-b border-border/40 glass-strong transition-transform duration-300 ${hidden ? '-translate-y-full' : 'translate-y-0'}`}>
+    <header className="sticky top-0 z-40 border-b border-border/40 glass-strong">
       <div className="mx-auto flex h-16 max-w-5xl items-center gap-3 px-4">
         <Link href="/" className="flex items-center gap-2 shrink-0">
           <img src="/logo.png" alt="BetRod" className="h-8 w-8 sm:h-9 sm:w-9 rounded-lg sm:rounded-xl object-contain" />
@@ -62,23 +64,23 @@ export function AppNav({ displayName, balance, isAdmin, image }: NavProps) {
         </nav>
 
         <div className="ml-auto flex items-center gap-2">
-          <div className="flex items-center gap-2 rounded-xl border border-gold/40 bg-gold/10 px-3 py-1.5">
-            <Coins className="h-4 w-4 text-gold" />
-            <div className="leading-none">
-              <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Cagnotte</p>
-              <p className="font-heading text-sm text-gold tabular">{formatMoney(balance)}</p>
+          {!isAdmin && (
+            <div className="flex items-center gap-2 rounded-xl border border-gold/40 bg-gold/10 px-3 py-1.5">
+              <Coins className="h-4 w-4 text-gold" />
+              <div className="leading-none">
+                <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Cagnotte</p>
+                <p className="font-heading text-sm text-gold tabular">{formatMoney(balance)}</p>
+              </div>
             </div>
-          </div>
+          )}
           <AvatarUpload name={displayName} currentImage={image ?? null} size="sm" />
           <span className="hidden sm:block text-sm text-muted-foreground max-w-[10rem] truncate" title={displayName}>
             {displayName}
           </span>
-          <PushNotificationToggle />
           <SignOutButton />
         </div>
       </div>
 
-      {/* Mobile nav */}
       <nav className="md:hidden flex items-center justify-around border-t border-border bg-background px-1 pb-safe">
         {links.map((l) => {
           const Icon = l.icon
