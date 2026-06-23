@@ -11,6 +11,7 @@ import { teamColors } from "@/lib/team-colors"
 import { formatMoney, betStatusLabel, formatOdds } from "@/lib/format"
 import { formatStage } from "@/lib/utils"
 import { Avatar } from "@/components/avatar"
+import { AdminFetchOddsButton } from "@/components/admin-fetch-odds-button"
 import { MapPin, Calendar, Clock, Activity, Users } from "lucide-react"
 import { Countdown } from "@/components/countdown"
 
@@ -61,7 +62,10 @@ export default async function MatchDetailPage({
             <span className="inline-flex items-center rounded-full border border-border/60 bg-secondary px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
               {formatStage(m.stage)}
             </span>
-            <StatusPill status={m.status} hasStarted={hasStarted} />
+            <div className="flex items-center gap-2">
+              <StatusPill status={m.status} hasStarted={hasStarted} />
+              {p.isAdmin && <AdminFetchOddsButton homeTeam={m.homeTeam} awayTeam={m.awayTeam} kickoff={m.kickoff} />}
+            </div>
           </div>
 
           <div className="flex items-center justify-between gap-2 sm:gap-4">

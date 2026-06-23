@@ -162,3 +162,48 @@ export async function storeRundownOdds(oddsMap: Map<string, NormalizedOdds>): Pr
   console.log(`[therundown] Stored odds for ${stored} matches`)
   return stored
 }
+
+export async function fetchAndStoreOddsForMatch(homeTeam: string, awayTeam: string, kickoff: Date): Promise<{ ok: boolean; odds?: NormalizedOdds; error?: string }> {
+  const key = getKey()
+  if (!key) return { ok: false, error: "THERUNDOWN_KEY not configured" }
+
+  // Fetch events for the match's date
+  const dateStr = kickoff.toISOString().split("T")[0]
+  const url = `${API_BASE}/sports/${SPORT_ID}/events/${dateStr}?market_ids=1,3&main_line=true&offset=300`
+
+  try {
+    const res = await fetch(url, { headers: { "X-TheRundown-Key": key } })
+    if (!res.ok) return { ok: false, error: `API returned ${res.status}` }
+    const data = await res.json()
+    const events: TheRundownEvent[] = data.events ?? []
+
+    for (const e of events) {
+      const eventHome = e.teams_normalized.find(t => t.is_home)
+      const eventAway = e.teams_normalized.find(t => t.is_away)
+      if (!eventHome || !eventAway) continue
+
+      if (teamsMatch(homeTeam, eventHome.name) && teamsMatch(awayTeam, eventAway.name)) {
+        const odds = normalizeRundownEvent(e)
+        if (!odds) return { ok: false, error: "Could not normalize odds" }
+
+        // Store in DB
+        const allMatches = await db
+          .select({ id: match.id, homeTeam: match.homeTeam, awayTeam: match.awayTeam })
+          .from(match)
+        const dbMatch = allMatches.find(
+          (m) => teamsMatch(m.homeTeam, eventHome.name) && teamsMatch(m.awayTeam, eventAway.name),
+        )
+        if (dbMatch) {
+          await db.update(match).set({ oddsJson: odds }).where(eq(match.id, dbMatch.id))
+          console.log(`[therundown] Odds updated for ${eventHome.name} vs ${eventAway.name}`)
+        }
+
+        return { ok: true, odds }
+      }
+    }
+
+    return { ok: false, error: "Match not found in TheRundown data for this date" }
+  } catch (e) {
+    return { ok: false, error: String(e) }
+  }
+}
