@@ -224,8 +224,12 @@ function OutcomeGrid({
 }) {
   if (!market) return null
 
+  const horizontalLayouts = ["match_result", "double_chance", "totals", "btts"]
+  const isHorizontal = horizontalLayouts.includes(market.type)
+  const gridClass = market.outcomes.length === 2 ? "grid-cols-2" : "grid-cols-3"
+
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className={isHorizontal ? `grid ${gridClass} gap-1.5` : "flex flex-col gap-1.5"}>
       {market.outcomes.map((o) => {
         const active = selectedKey === o.key
         return (
@@ -235,15 +239,20 @@ function OutcomeGrid({
             disabled={disabled}
             onClick={() => onPick(market.type, `${MARKET_LABELS[market.type]}: ${o.label}`, o.odds, { ...o.payload, __key: o.key })}
             className={cn(
-              "flex items-center justify-between rounded-xl px-4 py-3 text-left transition-all disabled:opacity-40",
+              isHorizontal
+                ? "flex flex-col items-center justify-center rounded-xl px-2 py-3 text-center transition-all disabled:opacity-40 gap-1"
+                : "flex items-center justify-between rounded-xl px-4 py-3 text-left transition-all disabled:opacity-40",
               active
                 ? "bg-primary/10 border border-primary/50"
                 : "bg-card border border-border hover:border-primary/30 hover:bg-secondary/30",
             )}
           >
-            <span className="text-sm font-medium text-card-foreground">{o.label}</span>
+            <span className={cn("font-medium text-card-foreground", isHorizontal ? "text-xs leading-tight text-center" : "text-sm")}>
+              {o.label}
+            </span>
             <span className={cn(
-              "font-heading text-lg tabular",
+              "font-heading tabular",
+              isHorizontal ? "text-base" : "text-lg",
               active ? "text-primary" : "text-gold"
             )}>
               {formatOdds(o.odds)}
