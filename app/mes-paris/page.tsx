@@ -1,7 +1,7 @@
 import { requireUser, AppShell } from "@/components/app-shell"
 import { getUserBets, getUserBetStats } from "@/lib/queries"
 import { formatMoney, formatOdds, betStatusLabel } from "@/lib/format"
-import { Ticket, Filter, TrendingUp, TrendingDown, Sparkles } from "lucide-react"
+import { Ticket, Filter, TrendingUp, TrendingDown } from "lucide-react"
 import Link from "next/link"
 import { CancelBetButton } from "./cancel-button"
 import { JokerButton } from "@/components/joker-button"
@@ -75,21 +75,13 @@ export default async function MyBetsPage() {
           </div>
 
           {/* Advanced stats */}
-          {stats && (stats.successRate > 0 || stats.favoriteTeam) && (
-            <div className="mb-6 grid gap-3 sm:grid-cols-3">
+          {stats && stats.successRate > 0 && (
+            <div className="mb-6">
               <div className="rounded-2xl border border-border/40 glass p-4">
                 <p className="text-xs text-muted-foreground">Taux de réussite</p>
                 <p className="mt-1 font-heading text-xl tabular text-primary">
                   {stats.successRate ? `${Math.round(stats.successRate)}%` : "—"}
                 </p>
-              </div>
-              <div className="rounded-2xl border border-border/40 glass p-4">
-                <p className="text-xs text-muted-foreground">Meilleur marché</p>
-                <p className="mt-1 font-heading text-lg text-gold truncate">{stats.bestMarket ?? "—"}</p>
-              </div>
-              <div className="rounded-2xl border border-border/40 glass p-4">
-                <p className="text-xs text-muted-foreground">Équipe fétiche</p>
-                <p className="mt-1 font-heading text-lg text-foreground truncate">{stats.favoriteTeam ?? "—"}</p>
               </div>
             </div>
           )}
@@ -113,27 +105,22 @@ export default async function MyBetsPage() {
               </h2>
               <div className="flex flex-col gap-2">
                 {pendingBets.map(({ bet: b, match: m }) => (
-                  <div key={b.id} className="flex items-center justify-between rounded-2xl border border-border/40 glass p-4 transition-all duration-200 hover:border-primary/30 hover-lift">
-                    <Link href={`/match/${b.matchId}`} className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-card-foreground truncate">
+                  <div key={b.id} className="rounded-2xl border border-border/40 glass p-4">
+                    <Link href={`/match/${b.matchId}`} className="block">
+                      <p className="text-sm font-medium text-card-foreground">
                         {b.label}
                         {b.isJoker && <span className="ml-1.5 inline-flex items-center rounded bg-gold/20 px-1.5 py-0.5 text-[10px] text-gold">🎩 x2</span>}
                       </p>
-                      <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                         <span className="tabular">Mise {formatMoney(b.stake)}</span>
-                        <span>·</span>
                         <span className="tabular">Cote {formatOdds(b.odds)}</span>
-                        {m && <><span>·</span><span>{m.homeTeam} vs {m.awayTeam}</span></>}
+                        {m && <span>{m.homeTeam} vs {m.awayTeam}</span>}
                       </div>
                     </Link>
-                    <div className="ml-2 sm:ml-4 flex flex-col sm:flex-row items-end sm:items-center gap-1 sm:gap-3 text-right">
+                    <div className="mt-3 flex items-center justify-between gap-2">
                       <div>
-                        <span className="inline-flex items-center rounded-full bg-live/15 px-2 py-0.5 text-xs font-medium text-live">
-                          En cours
-                        </span>
-                        <p className="mt-1 font-heading text-xs tabular text-gold">
-                          Gain pot. {formatMoney(b.potentialPayout)}
-                        </p>
+                        <span className="inline-flex items-center rounded-full bg-live/15 px-2 py-0.5 text-xs font-medium text-live">En cours</span>
+                        <span className="ml-2 font-heading text-xs tabular text-gold">Gain pot. {formatMoney(b.potentialPayout)}</span>
                       </div>
                       <div className="flex items-center gap-1.5">
                         {!b.isJoker && <JokerButton betId={b.id} jokerUsedAt={p.jokerUsedAt} />}
@@ -155,31 +142,30 @@ export default async function MyBetsPage() {
               </h2>
               <div className="flex flex-col gap-2">
                 {settledBets.map(({ bet: b, match: m }) => (
-                  <div key={b.id} className={`flex items-center justify-between rounded-2xl border p-4 ${
+                  <div key={b.id} className={`rounded-2xl border p-4 ${
                     b.status === "won" ? "border-primary/30 bg-primary/5" : b.status === "lost" ? "border-destructive/30 bg-destructive/5" : "border-border bg-card"
                   }`}>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-card-foreground truncate">
+                    <div>
+                      <p className="text-sm font-medium text-card-foreground">
                         {b.label}
                         {b.isJoker && <span className="ml-1.5 inline-flex items-center rounded bg-gold/20 px-1.5 py-0.5 text-[10px] text-gold">🎩 x2</span>}
                         {b.bonusPoints > 0 && <span className="ml-1.5 text-xs text-primary">+{b.bonusPoints}pts</span>}
                       </p>
-                      <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                      <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
                         <span className="tabular">Mise {formatMoney(b.stake)}</span>
-                        <span>·</span>
                         <span className="tabular">Cote {formatOdds(b.odds)}</span>
-                        {m && <><span>·</span><span>{m.homeTeam} vs {m.awayTeam}</span></>}
+                        {m && <span>{m.homeTeam} vs {m.awayTeam}</span>}
                       </div>
                     </div>
-                    <div className="ml-4 text-right">
+                    <div className="mt-3 flex items-center justify-between">
                       <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
                         b.status === "won" ? "bg-primary/20 text-primary" : b.status === "lost" ? "bg-destructive/20 text-destructive" : "bg-muted text-muted-foreground"
                       }`}>
                         {betStatusLabel(b.status)}
                       </span>
-                      <p className={`mt-1 font-heading text-xs tabular ${b.status === "won" ? "text-primary" : "text-destructive"}`}>
+                      <span className={`font-heading text-sm tabular ${b.status === "won" ? "text-primary" : "text-destructive"}`}>
                         {b.status === "won" ? `+${formatMoney(b.potentialPayout - b.stake)}` : `-${formatMoney(b.stake)}`}
-                      </p>
+                      </span>
                     </div>
                   </div>
                 ))}
