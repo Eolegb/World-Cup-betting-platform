@@ -8,7 +8,8 @@
 
 import { db } from "@/lib/db"
 import { match } from "@/lib/db/schema"
-import { and, eq } from "drizzle-orm"
+import { eq } from "drizzle-orm"
+import { teamsMatch } from "@/lib/team-name"
 
 const ODDS_API_BASE = "https://api.the-odds-api.com/v4"
 
@@ -98,20 +99,31 @@ const FALLBACK_ODDS: NormalizedOdds = {
   updatedAt: new Date().toISOString(),
 }
 
-/** Store odds for all matches in DB */
+/** Store odds for all matches in DB — fuzzy team name matching */
 async function storeOddsInDb(events: OddsApiEvent[]): Promise<number> {
   let stored = 0
+  // Charger tous les matchs une seule fois pour éviter N requêtes
+  const allMatches = await db
+    .select({ id: match.id, homeTeam: match.homeTeam, awayTeam: match.awayTeam })
+    .from(match)
+
   for (const e of events) {
     const odds = normalizeOdds(e)
     if (!odds) continue
 
-    await db
-      .update(match)
-      .set({ oddsJson: odds })
-      .where(and(eq(match.homeTeam, e.home_team), eq(match.awayTeam, e.away_team)))
+    // Correspondance floue : gère les variantes de noms (ex: "USA" ↔ "United States")
+    const dbMatch = allMatches.find(
+      (m) => teamsMatch(m.homeTeam, e.home_team) && teamsMatch(m.awayTeam, e.away_team),
+    )
+    if (!dbMatch) {
+      console.warn(`[odds-service] Pas de match en DB pour: ${e.home_team} vs ${e.away_team}`)
+      continue
+    }
+
+    await db.update(match).set({ oddsJson: odds }).where(eq(match.id, dbMatch.id))
     stored++
   }
-  console.log(`[odds-service] Stored odds for ${stored} matches in DB`)
+  console.log(`[odds-service] Cotes stockées pour ${stored} matchs en DB`)
   return stored
 }
 

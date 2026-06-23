@@ -6,6 +6,8 @@
 // the minute — that's what lets us settle "scorer + minute range" bets.
 // =============================================================================
 
+import { playersMatch } from "@/lib/team-name"
+
 export type GoalEvent = {
   player: string | null
   team: string // "home" | "away"
@@ -33,8 +35,9 @@ function matchSide(m: ResolvableMatch): "home" | "draw" | "away" {
   return "draw"
 }
 
+/** Tous les buts marqués par ce joueur (comparaison tolérante aux accents et initiales). */
 function playerScored(m: ResolvableMatch, player: string): GoalEvent[] {
-  return m.goals.filter((g) => g.player === player)
+  return m.goals.filter((g) => playersMatch(g.player, player))
 }
 
 /** Returns "won" | "lost" for a settled match. */
@@ -60,14 +63,16 @@ export function resolveBet(m: ResolvableMatch, bet: ResolvableBet): "won" | "los
       return both === Boolean(sel.yes) ? "won" : "lost"
     }
     case "correct_score": {
-      return m.homeScore === Number(sel.home) && m.awayScore === Number(sel.away) ? "won" : "lost"
+      return m.homeScore === Number(sel.home) && m.awayScore === Number(sel.away)
+        ? "won"
+        : "lost"
     }
     case "anytime_scorer": {
       return playerScored(m, String(sel.player)).length > 0 ? "won" : "lost"
     }
     case "first_scorer": {
       const first = [...m.goals].sort((a, b) => a.minute - b.minute)[0]
-      return first && first.player === sel.player ? "won" : "lost"
+      return first && playersMatch(first.player, String(sel.player)) ? "won" : "lost"
     }
     case "scorer_minute_range": {
       const from = bet.minuteFrom ?? 0
