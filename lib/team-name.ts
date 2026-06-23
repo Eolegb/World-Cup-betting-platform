@@ -32,6 +32,7 @@ export function normalizeTeamName(name: string): string {
 }
 
 export function teamsMatch(left: string, right: string): boolean {
+  if (!left || !right) return false
   return normalizeTeamName(left) === normalizeTeamName(right)
 }
 
