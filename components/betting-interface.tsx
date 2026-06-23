@@ -3,11 +3,9 @@
 import { useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Slider } from "@/components/ui/slider"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { formatMoney, formatOdds } from "@/lib/format"
 import { MARKET_LABELS, scorerMinuteRangeOdds, type Market, type MarketType } from "@/lib/markets"
@@ -93,7 +91,7 @@ export function BettingInterface({
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-[1fr_280px] lg:grid-cols-[1fr_320px]">
+    <div className="grid gap-6 md:grid-cols-[1fr_280px] lg:grid-cols-[1fr_320px] min-w-0 overflow-x-hidden">
       <div className="rounded-3xl border border-border/50 glass p-3 sm:p-6 animate-scale-in">
         <div className="mb-4 flex items-center gap-2">
           <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
@@ -111,56 +109,49 @@ export function BettingInterface({
           </div>
         )}
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v ?? availableTabs[0] ?? "")} className="w-full">
-          {/* Mobile: dropdown selector */}
-          <div className="sm:hidden mb-4">
-            <Select value={activeTab} onValueChange={(v) => setActiveTab(v ?? availableTabs[0] ?? "")}>
-              <SelectTrigger className="w-full">
-                <SelectValue>{MARKET_LABELS[activeTab as MarketType] ?? activeTab}</SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {availableTabs.map((t) => (
-                  <SelectItem key={t} value={t}>{MARKET_LABELS[t]}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Desktop: horizontal scrollable tabs */}
-          <TabsList className="mb-4 hidden sm:flex h-auto w-full gap-1 overflow-x-auto bg-transparent p-0 pb-1 flex-nowrap">
+        {/* Scrollable pill tabs — same on mobile and desktop */}
+        <div className="overflow-x-auto scrollbar-none -mx-1 px-1 mb-4">
+          <div className="flex gap-1.5 flex-nowrap pb-1">
             {availableTabs.map((t) => (
-              <TabsTrigger
+              <button
                 key={t}
-                value={t}
-                className="shrink-0 rounded-lg border border-border bg-card px-2.5 py-1.5 text-[11px] whitespace-nowrap data-[state=active]:border-primary data-[state=active]:bg-primary/10 data-[state=active]:text-primary"
+                type="button"
+                onClick={() => setActiveTab(t)}
+                className={cn(
+                  "shrink-0 rounded-full px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors",
+                  activeTab === t
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-secondary/70 text-muted-foreground hover:text-foreground hover:bg-secondary"
+                )}
               >
-                {MARKET_LABELS[t]}
-              </TabsTrigger>
+                {MARKET_LABELS[t as MarketType] ?? t}
+              </button>
             ))}
-          </TabsList>
+          </div>
+        </div>
 
-          {availableTabs.map((t) => (
-            <TabsContent key={t} value={t} className="mt-0">
-              {t === "scorer_minute_range" ? (
-                <ScorerMinuteRange
-                  scorerMarket={scorerMarket}
-                  disabled={!canBet}
-                  current={selection}
-                  onPick={(sel) => setSelection(sel)}
-                />
-              ) : (
-                <OutcomeGrid
-                  market={marketByType.get(t)}
-                  disabled={!canBet}
-                  selectedKey={
-                    selection && selection.marketType === t ? String(selection.payload.__key ?? selection.label) : null
-                  }
-                  onPick={pick}
-                />
-              )}
-            </TabsContent>
-          ))}
-        </Tabs>
+        {/* Content for active tab */}
+        <div className="min-w-0">
+          {activeTab === "scorer_minute_range" ? (
+            <ScorerMinuteRange
+              scorerMarket={scorerMarket}
+              disabled={!canBet}
+              current={selection}
+              onPick={(sel) => setSelection(sel)}
+            />
+          ) : (
+            <OutcomeGrid
+              market={marketByType.get(activeTab as MarketType)}
+              disabled={!canBet}
+              selectedKey={
+                selection && selection.marketType === activeTab
+                  ? String(selection.payload.__key ?? selection.label)
+                  : null
+              }
+              onPick={pick}
+            />
+          )}
+        </div>
       </div>
 
       <BetSlip
@@ -271,19 +262,19 @@ function ScorerMinuteRange({
         <Target className="mr-1 inline h-3.5 w-3.5" />
         Buteur
       </label>
-      <Select value={player} onValueChange={(v) => setPlayer(v ?? "")} disabled={disabled}>
-        <SelectTrigger className="mb-4 w-full">
-          <SelectValue placeholder="Choisir un joueur" />
-        </SelectTrigger>
-        <SelectContent className="!min-w-[300px] !w-auto max-w-[95vw]">
+      <div className="relative mb-4">
+        <select
+          value={player}
+          onChange={e => setPlayer(e.target.value)}
+          disabled={disabled}
+          className="w-full appearance-none rounded-xl border border-border bg-card px-4 py-3 pr-10 text-sm font-medium text-foreground focus:border-primary focus:outline-none disabled:opacity-50"
+        >
           {players.map((p) => (
-            <SelectItem key={p.key} value={p.key} className="pr-12">
-              <span className="truncate">{p.label}</span>
-              <span className="ml-auto shrink-0 pl-2 text-xs text-muted-foreground tabular">cote {formatOdds(p.odds)}</span>
-            </SelectItem>
+            <option key={p.key} value={p.key}>{p.label} — ×{formatOdds(p.odds)}</option>
           ))}
-        </SelectContent>
-      </Select>
+        </select>
+        <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
+      </div>
 
       <div className="mb-2 flex items-center justify-between">
         <label className="text-xs font-medium text-muted-foreground">

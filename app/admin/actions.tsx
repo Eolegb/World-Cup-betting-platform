@@ -69,17 +69,17 @@ export function AdminActions() {
   }
 
   return (
-    <div className="flex flex-wrap gap-3">
-      <Button onClick={handleSync} disabled={syncing} className="font-medium">
-        <RefreshCw className={`mr-1.5 h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
-        {syncing ? "Synchro en cours..." : "Lancer la synchronisation"}
+    <div className="flex flex-col gap-2 w-full">
+      <Button onClick={handleSync} disabled={syncing} className="w-full font-medium justify-start">
+        <RefreshCw className={`mr-2 h-4 w-4 shrink-0 ${syncing ? "animate-spin" : ""}`} />
+        {syncing ? "Synchronisation..." : "Synchroniser les matchs"}
       </Button>
-      <Button onClick={handleSettle} disabled={settling} variant="secondary" className="font-medium">
-        <FlaskConical className="mr-1.5 h-4 w-4" />
-        {settling ? "Clôture..." : "Clôturer les paris"}
+      <Button onClick={handleSettle} disabled={settling} variant="secondary" className="w-full font-medium justify-start">
+        <RefreshCw className={`mr-2 h-4 w-4 shrink-0 ${settling ? "animate-spin" : ""}`} />
+        {settling ? "Clôture en cours..." : "Clôturer les paris"}
       </Button>
-      <Button onClick={triggerSeed} disabled={seeding} variant="outline" className="font-medium">
-        <FlaskConical className="mr-1.5 h-4 w-4" />
+      <Button onClick={triggerSeed} disabled={seeding} variant="outline" className="w-full font-medium justify-start">
+        <FlaskConical className="mr-2 h-4 w-4 shrink-0" />
         {seeding ? "Génération..." : "Générer données de démo"}
       </Button>
     </div>

@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { SettleBetButton } from "@/components/settle-bet-button"
 import { OverrideBetButton } from "@/components/override-bet-button"
 import { formatMoney, formatOdds } from "@/lib/format"
 import { Ticket, Download, X, ChevronDown } from "lucide-react"
@@ -240,7 +239,6 @@ export function BetsTable({ bets: allBets, totalBets, wonCount, lostCount, pendi
                     {isWon ? "✅ Gagné" : isLost ? "❌ Perdu" : "⏳ En cours"}
                   </span>
                   <div className="flex items-center gap-1.5">
-                    {isPending && <SettleBetButton betId={b.betId} />}
                     <OverrideBetButton betId={b.betId} currentStatus={b.status} />
                   </div>
                 </div>
