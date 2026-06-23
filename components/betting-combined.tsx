@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { formatMoney, formatOdds } from "@/lib/format"
 import { flagForTeam } from "@/lib/flags"
@@ -34,7 +33,6 @@ type Selection = {
   payload: Record<string, unknown>
 }
 
-// Market types to display in the combined bet (ordered for UX)
 const MARKET_TABS: { type: string; short: string }[] = [
   { type: "match_result", short: "1X2" },
   { type: "double_chance", short: "DC" },
@@ -42,6 +40,10 @@ const MARKET_TABS: { type: string; short: string }[] = [
   { type: "btts", short: "BTTS" },
   { type: "anytime_scorer", short: "Buteur" },
 ]
+
+function shortTeam(name: string): string {
+  return name.length > 3 ? name.slice(0, 3).toUpperCase() : name.toUpperCase()
+}
 
 export function BettingCombined({ balance }: { balance: number }) {
   const router = useRouter()
@@ -74,9 +76,9 @@ export function BettingCombined({ balance }: { balance: number }) {
   const profit = Math.round(stake * (combinedOdds - 1))
   const canSubmit = selections.length >= 2 && selections.length <= 5 && stake > 0 && stake <= balance
 
-  function isSelected(matchId: number) { return selections.some(s => s.matchId === matchId) }
+  function getMarketsFor(matchId: number) { return markets[matchId] ?? [] }
 
-  function getActiveMarkets(matchId: number): Outcome[] {
+  function getActiveOutcomes(matchId: number): Outcome[] {
     const tab = activeTab[matchId] ?? "match_result"
     const m = markets[matchId]
     if (!m) return []
@@ -122,7 +124,7 @@ export function BettingCombined({ balance }: { balance: number }) {
     const marketLabel = getActiveMarketLabel(m.id)
     setSelections(prev => [...prev.filter(s => s.matchId !== m.id), {
       matchId: m.id,
-      matchLabel: `${m.homeTeam} vs ${m.awayTeam}`,
+      matchLabel: `${shortTeam(m.homeTeam)} vs ${shortTeam(m.awayTeam)}`,
       homeTeam: m.homeTeam,
       awayTeam: m.awayTeam,
       marketType: tab,
@@ -167,79 +169,84 @@ export function BettingCombined({ balance }: { balance: number }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Layers className="h-5 w-5 text-gold" />
-        <h3 className="font-heading text-lg">Pari combiné</h3>
-        {selections.length >= 2 && <Badge className="bg-gold/20 text-gold">x{selections.length}</Badge>}
+      <div>
+        <h3 className="flex items-center gap-2 font-heading text-lg">
+          <Layers className="h-5 w-5 text-gold" />
+          Pari combiné
+          {selections.length >= 2 && <span className="text-sm text-gold font-normal">x{selections.length}</span>}
+        </h3>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Choisis 2 à 5 événements. Tous gagnants pour remporter.
+        </p>
       </div>
-      <p className="text-sm text-muted-foreground">
-        Choisis 2 à 5 événements (matchs différents, n&apos;importe quel marché). Tous gagnants pour remporter.
-      </p>
 
-      <div className="flex flex-col gap-2 max-h-[480px] overflow-y-auto pr-0.5">
+      <div className="space-y-2">
         {matches.map(m => {
           const sel = selections.find(s => s.matchId === m.id)
           const isExpanded = expanded === m.id
           const tab = activeTab[m.id] ?? "match_result"
+          const homeFlag = flagForTeam(m.homeTeam, m.homeTeamCode)
+          const awayFlag = flagForTeam(m.awayTeam, m.awayTeamCode)
 
           return (
-            <div key={m.id} className={cn("rounded-xl border overflow-hidden", sel ? "border-primary/50 bg-primary/5" : "border-border bg-card")}>
-              {/* Match header row */}
-              <div className="flex items-center gap-2 p-3">
-                {/* Checkbox / remove */}
-                {sel ? (
+            <div key={m.id} className={cn(
+              "rounded-2xl border overflow-hidden transition-colors",
+              sel ? "border-primary/40 bg-primary/5" : "border-border/60 glass"
+            )}>
+              <div className="p-3">
+                {/* Top row: checkbox + teams + date + chevron */}
+                <div className="flex items-center gap-2">
+                  {sel ? (
+                    <button
+                      type="button"
+                      onClick={() => handleDeselect(m.id)}
+                      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border-2 border-primary bg-primary text-white"
+                    >
+                      <svg className="h-3.5 w-3.5" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  ) : (
+                    <div className="h-6 w-6 shrink-0 rounded-full border-2 border-muted-foreground/30" />
+                  )}
+
                   <button
                     type="button"
-                    onClick={() => handleDeselect(m.id)}
-                    className="flex h-5 w-5 shrink-0 items-center justify-center rounded border-2 border-primary bg-primary text-white"
+                    onClick={() => handleToggle(m)}
+                    className="flex flex-1 items-center gap-2 text-left min-w-0"
                   >
-                    <svg className="h-3 w-3" viewBox="0 0 20 20" fill="currentColor">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
+                    <span className="text-xl">{homeFlag}</span>
+                    <span className="text-sm font-medium">{shortTeam(m.homeTeam)}</span>
+                    <span className="text-xs text-muted-foreground">vs</span>
+                    <span className="text-sm font-medium">{shortTeam(m.awayTeam)}</span>
+                    <span className="text-xl">{awayFlag}</span>
+                    <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
+                      {new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(m.kickoff))}
+                    </span>
+                    <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted-foreground transition", isExpanded && "rotate-180")} />
                   </button>
-                ) : (
-                  <div className="h-5 w-5 shrink-0 rounded border-2 border-muted-foreground/40" />
-                )}
+                </div>
 
-                <button
-                  type="button"
-                  onClick={() => handleToggle(m)}
-                  className="flex flex-1 items-center gap-2 text-left min-w-0"
-                >
-                  <span>{flagForTeam(m.homeTeam, m.homeTeamCode)}</span>
-                  <span className="text-sm font-medium truncate">{m.homeTeam}</span>
-                  <span className="text-xs text-muted-foreground shrink-0">vs</span>
-                  <span>{flagForTeam(m.awayTeam, m.awayTeamCode)}</span>
-                  <span className="text-sm font-medium truncate">{m.awayTeam}</span>
-                  <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">
-                    {new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(m.kickoff))}
-                  </span>
-                  <ChevronDown className={cn("h-4 w-4 shrink-0 text-muted-foreground transition", isExpanded && "rotate-180")} />
-                </button>
+                {sel && (
+                  <div className="mt-2 ml-8">
+                    <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2.5 py-1 text-xs text-primary font-medium">
+                      {sel.marketLabel} · {sel.outcomeLabel}
+                      <span className="ml-1 text-gold font-heading">{formatOdds(sel.odds)}</span>
+                    </span>
+                  </div>
+                )}
               </div>
 
-              {/* Current selection chip */}
-              {sel && (
-                <div className="px-3 pb-2 -mt-1">
-                  <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[11px] text-primary font-medium">
-                    {sel.marketLabel} · {sel.outcomeLabel}
-                    <span className="ml-1 text-gold font-heading">{formatOdds(sel.odds)}</span>
-                  </span>
-                </div>
-              )}
-
-              {/* Expanded market picker */}
               {isExpanded && (
-                <div className="border-t border-border">
-                  {/* Market tabs */}
+                <div className="border-t border-border/40">
                   <div className="flex overflow-x-auto gap-1 px-3 pt-2 pb-1 scrollbar-none">
-                    {MARKET_TABS.filter(t => markets[m.id]?.some(mk => mk.type === t.type)).map(t => (
+                    {MARKET_TABS.filter(t => getMarketsFor(m.id).some(mk => mk.type === t.type)).map(t => (
                       <button
                         key={t.type}
                         type="button"
                         onClick={() => setActiveTab(prev => ({ ...prev, [m.id]: t.type }))}
                         className={cn(
-                          "shrink-0 rounded-full px-3 py-1 text-[11px] font-medium transition-colors",
+                          "shrink-0 rounded-full px-3 py-1.5 text-xs font-medium transition-colors",
                           tab === t.type
                             ? "bg-primary text-primary-foreground"
                             : "bg-muted text-muted-foreground hover:text-foreground"
@@ -250,20 +257,20 @@ export function BettingCombined({ balance }: { balance: number }) {
                     ))}
                   </div>
 
-                  {/* Outcomes */}
                   <div className="px-3 pb-3 pt-1">
                     {loadingMarket === m.id ? (
-                      <p className="py-2 text-center text-xs text-muted-foreground">Chargement...</p>
-                    ) : getActiveMarkets(m.id).length ? (
-                      <div className={cn(
-                        "grid gap-1.5",
-                        getActiveMarkets(m.id).length <= 3
-                          ? "grid-cols-3"
-                          : getActiveMarkets(m.id).length <= 4
-                          ? "grid-cols-2 sm:grid-cols-4"
-                          : "grid-cols-2 sm:grid-cols-3"
-                      )}>
-                        {getActiveMarkets(m.id).map(o => {
+                      <p className="py-4 text-center text-xs text-muted-foreground">Chargement...</p>
+                    ) : tab === "anytime_scorer" ? (
+                      <CombinedScorerSelect
+                        outcomes={getActiveOutcomes(m.id)}
+                        homeTeam={m.homeTeam}
+                        awayTeam={m.awayTeam}
+                        selectedKey={sel?.marketType === "anytime_scorer" ? sel.outcomeKey : null}
+                        onSelect={o => handleSelect(m, o)}
+                      />
+                    ) : getActiveOutcomes(m.id).length ? (
+                      <div className="grid grid-cols-2 gap-1.5">
+                        {getActiveOutcomes(m.id).map(o => {
                           const isCurrent = sel?.outcomeKey === o.key && sel?.marketType === tab
                           return (
                             <button
@@ -271,20 +278,22 @@ export function BettingCombined({ balance }: { balance: number }) {
                               type="button"
                               onClick={() => handleSelect(m, o)}
                               className={cn(
-                                "rounded-lg border px-2 py-2 text-center text-xs font-medium transition-colors",
+                                "rounded-xl border px-3 py-3 text-left transition-colors",
                                 isCurrent
-                                  ? "border-primary bg-primary/10 text-primary"
-                                  : "border-border hover:border-primary/40 hover:bg-muted/40"
+                                  ? "border-primary bg-primary/10"
+                                  : "border-border hover:border-primary/30 hover:bg-muted/30"
                               )}
                             >
-                              <div className="truncate leading-tight">{o.label}</div>
-                              <div className="font-heading text-base tabular text-gold mt-0.5">{formatOdds(o.odds)}</div>
+                              <div className="text-sm font-medium text-card-foreground leading-tight">{o.label}</div>
+                              <div className={cn("font-heading text-base tabular mt-1", isCurrent ? "text-primary" : "text-gold")}>
+                                {formatOdds(o.odds)}
+                              </div>
                             </button>
                           )
                         })}
                       </div>
                     ) : (
-                      <p className="py-2 text-center text-xs text-muted-foreground">Aucune cote disponible.</p>
+                      <p className="py-4 text-center text-xs text-muted-foreground">Aucune cote disponible.</p>
                     )}
                   </div>
                 </div>
@@ -294,28 +303,31 @@ export function BettingCombined({ balance }: { balance: number }) {
         })}
       </div>
 
-      {/* Ticket summary */}
+      {matches.length === 0 && !loading && (
+        <p className="py-4 text-center text-sm text-muted-foreground">Aucun match à venir.</p>
+      )}
+
       {selections.length > 0 && (
         <div className="rounded-2xl border border-border bg-card p-4">
           <h3 className="mb-3 flex items-center gap-2 font-heading text-base">
-            <Coins className="h-4 w-4 text-gold" /> Ticket combiné
-            <Badge className="bg-gold/20 text-gold">x{selections.length}</Badge>
+            <Coins className="h-4 w-4 text-gold" /> Ticket
+            <span className="text-sm text-gold font-normal">x{selections.length}</span>
           </h3>
 
-          <div className="flex flex-col gap-1.5 mb-3">
+          <div className="space-y-1.5 mb-3">
             {selections.map(s => (
-              <div key={`${s.matchId}-${s.marketType}`} className="flex items-center gap-2 rounded-lg border bg-background/40 px-3 py-2">
+              <div key={`${s.matchId}-${s.marketType}`} className="flex items-center gap-2 rounded-lg border bg-background/40 px-3 py-2.5">
                 <div className="flex-1 min-w-0">
-                  <p className="text-[11px] text-muted-foreground truncate">{s.matchLabel}</p>
-                  <p className="text-xs font-medium truncate">{s.marketLabel} · {s.outcomeLabel}</p>
+                  <p className="text-xs text-muted-foreground truncate">{s.matchLabel}</p>
+                  <p className="text-sm font-medium truncate">{s.outcomeLabel}</p>
                 </div>
                 <span className="font-heading text-sm tabular text-gold shrink-0">{formatOdds(s.odds)}</span>
                 <button
                   type="button"
                   onClick={() => setSelections(prev => prev.filter(x => x.matchId !== s.matchId))}
-                  className="text-muted-foreground hover:text-destructive shrink-0"
+                  className="p-1 -mr-1 text-muted-foreground hover:text-destructive shrink-0"
                 >
-                  <X className="h-3.5 w-3.5" />
+                  <X className="h-4 w-4" />
                 </button>
               </div>
             ))}
@@ -339,7 +351,7 @@ export function BettingCombined({ balance }: { balance: number }) {
                 type="button"
                 disabled={q > balance}
                 onClick={() => setStake(q)}
-                className="rounded-lg border px-2.5 py-1 text-xs text-muted-foreground hover:border-primary/40 disabled:opacity-40"
+                className="rounded-lg border px-2.5 py-1.5 text-xs text-muted-foreground hover:border-primary/40 disabled:opacity-40"
               >
                 {q}€
               </button>
@@ -347,7 +359,7 @@ export function BettingCombined({ balance }: { balance: number }) {
             <button
               type="button"
               onClick={() => setStake(balance)}
-              className="rounded-lg border px-2.5 py-1 text-xs text-muted-foreground hover:border-primary/40"
+              className="rounded-lg border px-2.5 py-1.5 text-xs text-muted-foreground hover:border-primary/40"
             >
               Max
             </button>
@@ -366,7 +378,7 @@ export function BettingCombined({ balance }: { balance: number }) {
             </div>
           )}
 
-          <Button onClick={handleSubmit} disabled={!canSubmit || submitting} className="w-full font-medium">
+          <Button onClick={handleSubmit} disabled={!canSubmit || submitting} className="w-full font-medium h-11">
             {submitting ? "Validation..." : `Parier ${formatMoney(stake)} (x${selections.length})`}
           </Button>
           {selections.length === 1 && (
@@ -376,6 +388,59 @@ export function BettingCombined({ balance }: { balance: number }) {
       )}
 
       <p className="text-center text-xs text-muted-foreground">Solde : {formatMoney(balance)}</p>
+    </div>
+  )
+}
+
+function CombinedScorerSelect({
+  outcomes,
+  homeTeam,
+  awayTeam,
+  selectedKey,
+  onSelect,
+}: {
+  outcomes: Outcome[]
+  homeTeam: string
+  awayTeam: string
+  selectedKey: string | null
+  onSelect: (o: Outcome) => void
+}) {
+  const homeFlag = flagForTeam(homeTeam)
+  const awayFlag = flagForTeam(awayTeam)
+  const homePlayers = outcomes.filter(o => String(o.payload.team) === "home")
+  const awayPlayers = outcomes.filter(o => String(o.payload.team) === "away")
+  const others = outcomes.filter(o => String(o.payload.team) !== "home" && String(o.payload.team) !== "away")
+
+  return (
+    <div className="relative">
+      <select
+        value={selectedKey ?? ""}
+        onChange={e => {
+          const o = outcomes.find(o => o.key === e.target.value)
+          if (o) onSelect(o)
+        }}
+        className="w-full appearance-none rounded-xl border border-border bg-card px-4 py-3 pr-10 text-sm font-medium text-foreground focus:border-primary focus:outline-none"
+      >
+        <option value="">— Choisir un buteur —</option>
+        {homePlayers.length > 0 && (
+          <optgroup label={`${homeFlag} ${homeTeam}`}>
+            {homePlayers.map(o => (
+              <option key={o.key} value={o.key}>{o.label} — ×{formatOdds(o.odds)}</option>
+            ))}
+          </optgroup>
+        )}
+        {awayPlayers.length > 0 && (
+          <optgroup label={`${awayFlag} ${awayTeam}`}>
+            {awayPlayers.map(o => (
+              <option key={o.key} value={o.key}>{o.label} — ×{formatOdds(o.odds)}</option>
+            ))}
+          </optgroup>
+        )}
+        {others.map(o => (
+          <option key={o.key} value={o.key}>{o.label} — ×{formatOdds(o.odds)}</option>
+        ))}
+      </select>
+      <svg className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" /></svg>
     </div>
   )
 }
