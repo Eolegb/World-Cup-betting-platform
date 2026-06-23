@@ -41,7 +41,7 @@ export function OverrideBetButton({ betId, currentStatus }: { betId: number; cur
       <button
         onClick={() => setOpen(!open)}
         disabled={loading}
-        className="rounded border border-border px-1.5 py-0.5 text-[9px] text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors disabled:opacity-50"
+        className="rounded-lg border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors disabled:opacity-50"
       >
         {loading ? "..." : "Modifier"}
       </button>
@@ -51,8 +51,8 @@ export function OverrideBetButton({ betId, currentStatus }: { betId: number; cur
             <button
               key={o.value}
               onClick={() => pick(o.value)}
-              className={`block w-full text-left px-2.5 py-1.5 text-xs transition-colors hover:bg-secondary ${
-                o.value === currentStatus ? "text-primary font-medium" : "text-foreground"
+              className={`block w-full text-left px-3 py-2.5 text-sm font-medium transition-colors hover:bg-secondary ${
+                o.value === currentStatus ? "text-primary" : "text-foreground"
               }`}
             >
               {o.emoji} {o.label}

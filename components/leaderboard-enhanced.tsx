@@ -49,8 +49,8 @@ export function LeaderboardEnhanced({ rows, myUserId }: { rows: LeaderRow[]; myU
       {/* ------------------------------------------------------------------ */}
       <div className="rounded-2xl border border-border/40 overflow-hidden bg-card/60 backdrop-blur-sm">
         <div className="divide-y divide-border/30">
-          {rows.map((r, i) => {
-            const rank = i + 1
+          {rows.slice(top3.length).map((r, i) => {
+            const rank = top3.length + i + 1
             const isMe = r.userId === myUserId
             const color = r.avatarColor || hashColor(r.displayName)
             return (

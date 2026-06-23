@@ -103,6 +103,17 @@ export default async function AdminPage() {
       </div>
 
       {/* ------------------------------------------------------------------ */}
+      {/* PARIS (en haut pour accès rapide)                                   */}
+      {/* ------------------------------------------------------------------ */}
+      <BetsTable
+        bets={bets}
+        totalBets={totalBets}
+        wonCount={wonCount}
+        lostCount={lostCount}
+        pendingCount={pendingCount}
+      />
+
+      {/* ------------------------------------------------------------------ */}
       {/* MATCHS                                                               */}
       {/* ------------------------------------------------------------------ */}
       <section className="mb-8">
@@ -136,17 +147,6 @@ export default async function AdminPage() {
           )}
         </div>
       </section>
-
-      {/* ------------------------------------------------------------------ */}
-      {/* PARIS                                                                */}
-      {/* ------------------------------------------------------------------ */}
-      <BetsTable
-        bets={bets}
-        totalBets={totalBets}
-        wonCount={wonCount}
-        lostCount={lostCount}
-        pendingCount={pendingCount}
-      />
 
       {/* ------------------------------------------------------------------ */}
       {/* JOUEURS + OUTILS (côte à côte sur desktop)                          */}

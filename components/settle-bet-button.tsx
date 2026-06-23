@@ -26,7 +26,7 @@ export function SettleBetButton({ betId }: { betId: number }) {
     <button
       onClick={handleSettle}
       disabled={loading}
-      className="rounded-lg border border-border px-2 py-1 text-[10px] font-medium text-muted-foreground hover:border-primary/40 hover:text-primary transition-colors disabled:opacity-50 shrink-0"
+      className="rounded-lg border border-primary/50 bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/20 transition-colors disabled:opacity-50 shrink-0"
       title="Clôturer ce pari"
     >
       {loading ? "..." : "Clôturer"}

@@ -66,6 +66,7 @@ export async function GET(req: Request) {
     let updated = 0
     let eventsAdded = 0
     let betsSettled = 0
+    const closedInStep2 = new Set<number>()
 
     // Charger les données worldcup26.ir une seule fois (source principale)
     let wc26Games: WC26Game[] = []
@@ -109,7 +110,21 @@ export async function GET(req: Request) {
           teamsMatch(g.home_team_name_en, m.homeTeam) &&
           teamsMatch(g.away_team_name_en, m.awayTeam),
       )
-      if (!wc26) continue
+      if (!wc26) {
+        // Match introuvable sur worldcup26 — s'il est live depuis >130min, force-clôturer
+        const ageMin = (Date.now() - new Date(m.kickoff).getTime()) / 60000
+        if (ageMin > 130) {
+          await db
+            .update(match)
+            .set({ status: "finished", elapsed: 90, lastSyncedAt: now })
+            .where(eq(match.id, m.id))
+          closedInStep2.add(m.id)
+          updated++
+          const summary = await settlePendingBetsForMatch(m.id)
+          betsSettled += summary.settled
+        }
+        continue
+      }
 
       if (wc26.finished === "TRUE" && wc26.home_score !== "null") {
         // Clôturer le match
@@ -120,6 +135,7 @@ export async function GET(req: Request) {
           .set({ status: "finished", homeScore, awayScore, elapsed: 90, lastSyncedAt: now })
           .where(eq(match.id, m.id))
         updated++
+        closedInStep2.add(m.id)
 
         await insertWC26Goals(m.id, m.homeTeam, m.awayTeam, wc26)
 
@@ -149,12 +165,8 @@ export async function GET(req: Request) {
       .where(and(or(eq(match.status, "scheduled"), eq(match.status, "live")), lt(match.kickoff, cutoff)))
 
     for (const m of candidates) {
-      // Déjà traité par worldcup26 ci-dessus → vérifier s'il est toujours live
-      const isStillLive = liveMatches.some((lm) => lm.id === m.id)
-      if (isStillLive) {
-        // Déjà géré en étape 2
-        continue
-      }
+      // Déjà clôturé en étape 2 → ignorer
+      if (closedInStep2.has(m.id)) continue
 
       // Vérifier worldcup26 d'abord même pour les candidats "scheduled"
       const wc26 = wc26Games.find(
