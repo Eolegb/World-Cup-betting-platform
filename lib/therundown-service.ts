@@ -163,9 +163,9 @@ export async function storeRundownOdds(oddsMap: Map<string, NormalizedOdds>): Pr
   return stored
 }
 
-export async function fetchAndStoreOddsForMatch(homeTeam: string, awayTeam: string, kickoff: Date): Promise<{ ok: boolean; odds?: NormalizedOdds; error?: string }> {
+export async function fetchAndStoreOddsForMatch(homeTeam: string, awayTeam: string, kickoff: Date): Promise<{ ok: boolean; odds?: NormalizedOdds; error?: string; errorCode?: string; debug?: { searchedTeams: { home: string; away: string }; datesTried: string[]; eventsFound: { homeName: string; awayName: string }[] } }> {
   const key = getKey()
-  if (!key) return { ok: false, error: "THERUNDOWN_KEY not configured" }
+  if (!key) return { ok: false, error: "THERUNDOWN_KEY not configured", errorCode: "NO_KEY" }
 
   // Try the match date ± 2 days to account for UTC offset and timezone grouping
   const dates: string[] = []
@@ -174,6 +174,8 @@ export async function fetchAndStoreOddsForMatch(homeTeam: string, awayTeam: stri
     dt.setDate(dt.getDate() + d)
     dates.push(dt.toISOString().split("T")[0])
   }
+
+  const eventsFound: { homeName: string; awayName: string }[] = []
 
   for (const dateStr of dates) {
     const url = `${API_BASE}/sports/${SPORT_ID}/events/${dateStr}?market_ids=1,3&main_line=true&offset=300`
@@ -187,10 +189,11 @@ export async function fetchAndStoreOddsForMatch(homeTeam: string, awayTeam: stri
         const eventHome = e.teams_normalized.find(t => t.is_home)
         const eventAway = e.teams_normalized.find(t => t.is_away)
         if (!eventHome || !eventAway) continue
+        eventsFound.push({ homeName: eventHome.name, awayName: eventAway.name })
 
         if (teamsMatch(homeTeam, eventHome.name) && teamsMatch(awayTeam, eventAway.name)) {
           const odds = normalizeRundownEvent(e)
-          if (!odds) return { ok: false, error: "Could not normalize odds" }
+          if (!odds) return { ok: false, error: "Could not normalize odds", errorCode: "NORMALIZE_FAILED", debug: { searchedTeams: { home: homeTeam, away: awayTeam }, datesTried: dates, eventsFound } }
 
           const allMatches = await db
             .select({ id: match.id, homeTeam: match.homeTeam, awayTeam: match.awayTeam })
@@ -211,5 +214,5 @@ export async function fetchAndStoreOddsForMatch(homeTeam: string, awayTeam: stri
     }
   }
 
-  return { ok: false, error: "Match not found in TheRundown data for this date (±1 day)" }
+  return { ok: false, error: "Match not found in TheRundown data for this date (±1 day)", errorCode: "NOT_FOUND", debug: { searchedTeams: { home: homeTeam, away: awayTeam }, datesTried: dates, eventsFound } }
 }

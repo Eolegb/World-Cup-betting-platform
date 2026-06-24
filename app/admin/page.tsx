@@ -252,12 +252,17 @@ function MatchAdminRow({
   }
   pendingBets: number
 }) {
+  const isStaleScheduled = m.status === "scheduled" && (Date.now() - new Date(m.kickoff).getTime()) > 130 * 60000
+  const showScore = m.status === "live" || m.status === "finished" || isStaleScheduled
+
   const statusConfig = {
     live: { dot: "bg-live", label: "En direct", bg: "bg-live/5 border-l-2 border-l-live" },
     scheduled: { dot: "bg-blue-400", label: "À venir", bg: "" },
     finished: { dot: "bg-muted-foreground/40", label: "Terminé", bg: "opacity-70" },
   }
-  const cfg = statusConfig[m.status as keyof typeof statusConfig] ?? statusConfig.scheduled
+  const cfg = m.status === "scheduled" && !isStaleScheduled ? statusConfig.scheduled
+    : isStaleScheduled ? statusConfig.finished
+    : statusConfig[m.status as keyof typeof statusConfig] ?? statusConfig.scheduled
 
   return (
     <div className={`flex items-center gap-3 px-4 py-3 ${cfg.bg} hover:bg-muted/30 transition-colors`}>
@@ -285,12 +290,12 @@ function MatchAdminRow({
 
       {/* Score */}
       <div className="shrink-0 text-center w-16">
-        {m.status === "scheduled" ? (
-          <span className="text-xs text-muted-foreground">–</span>
-        ) : (
+        {showScore ? (
           <span className="font-heading text-base tabular text-foreground">
-            {m.homeScore} <span className="text-muted-foreground text-xs">-</span> {m.awayScore}
+            {isStaleScheduled && !m.homeScore ? "?" : m.homeScore} <span className="text-muted-foreground text-xs">-</span> {isStaleScheduled && !m.awayScore ? "?" : m.awayScore}
           </span>
+        ) : (
+          <span className="text-xs text-muted-foreground">–</span>
         )}
       </div>
 

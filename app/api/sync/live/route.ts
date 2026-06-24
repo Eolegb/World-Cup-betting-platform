@@ -194,7 +194,20 @@ export async function GET(req: Request) {
       }
 
       // Dernier recours : football-data.org (nécessite externalId)
-      if (!m.externalId) continue
+      if (!m.externalId) {
+        // Force-close stale matches even without externalId
+        const ageMin = (Date.now() - new Date(m.kickoff).getTime()) / 60000
+        if (ageMin > 130) {
+          await db
+            .update(match)
+            .set({ status: "finished", elapsed: 90, lastSyncedAt: now })
+            .where(eq(match.id, m.id))
+          updated++
+          const summary = await settlePendingBetsForMatch(m.id)
+          betsSettled += summary.settled
+        }
+        continue
+      }
 
       const detail = await fetchMatchDetail(m.externalId)
       if (!detail) continue

@@ -106,11 +106,12 @@ export async function saveBatchResults(matches: MatchInput[]) {
       settled += result.settled
     } else if (existing.status === "live" || existing.status === "scheduled") {
       // -----------------------------------------------------------------------
-      // Match en cours : mise à jour du score intermédiaire uniquement
+      // Match en cours : mise à jour du score + passage scheduled → live
       // -----------------------------------------------------------------------
       await db
         .update(match)
         .set({
+          status: "live",
           homeScore: m.homeScore,
           awayScore: m.awayScore,
           elapsed: m.elapsed ?? undefined,

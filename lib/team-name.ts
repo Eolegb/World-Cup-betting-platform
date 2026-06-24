@@ -1,8 +1,16 @@
 const TEAM_ALIASES: Record<string, string> = {
+  // --- English API name disambiguations ----------------------------------
   "usa": "united states",
   "u s a": "united states",
+  "korea": "south korea",
   "korea republic": "south korea",
   "republic of korea": "south korea",
+  "dpr korea": "north korea",
+  "korea dpr": "north korea",
+  "congo": "congo dr",
+  "dr congo": "congo dr",
+  "congo dr": "congo dr",
+  "democratic republic of congo": "congo dr",
   "cote d ivoire": "ivory coast",
   "cote divoire": "ivory coast",
   "czech republic": "czechia",
@@ -13,13 +21,96 @@ const TEAM_ALIASES: Record<string, string> = {
   "saudi arabia": "saudi arabia",
   "ksa": "saudi arabia",
   "uae": "united arab emirates",
-  "dr congo": "congo dr",
-  "democratic republic of congo": "congo dr",
   "republic of ireland": "ireland",
   "bosnia-herzegovina": "bosnia and herzegovina",
   "bosnia herzegovina": "bosnia and herzegovina",
   "bosnia": "bosnia and herzegovina",
   "turkiye": "turkey",
+
+  // --- French → English (safety net if DB has French names) --------------
+  "colombie": "colombia",
+  "bresil": "brazil",
+  "argentine": "argentina",
+  "angleterre": "england",
+  "allemagne": "germany",
+  "espagne": "spain",
+  "italie": "italy",
+  "pays bas": "netherlands",
+  "croatie": "croatia",
+  "maroc": "morocco",
+  "mexique": "mexico",
+  "japon": "japan",
+  "suisse": "switzerland",
+  "danemark": "denmark",
+  "serbie": "serbia",
+  "suede": "sweden",
+  "pologne": "poland",
+  "belgique": "belgium",
+  "tunisie": "tunisia",
+  "cameroun": "cameroon",
+  "egypte": "egypt",
+  "australie": "australia",
+  "coree du sud": "south korea",
+  "coree du nord": "north korea",
+  "nouvelle zelande": "new zealand",
+  "afrique du sud": "south africa",
+  "etats unis": "united states",
+  "pays de galles": "wales",
+  "ecosse": "scotland",
+  "turquie": "turkey",
+  "autriche": "austria",
+  "grece": "greece",
+  "norvege": "norway",
+  "hongrie": "hungary",
+  "roumanie": "romania",
+  "republique tcheque": "czechia",
+  "slovaquie": "slovakia",
+  "slovenie": "slovenia",
+  "bulgarie": "bulgaria",
+  "portugal": "portugal",
+  "france": "france",
+  "uruguay": "uruguay",
+  "paraguay": "paraguay",
+  "chili": "chile",
+  "perou": "peru",
+  "equateur": "ecuador",
+  "venezuela": "venezuela",
+  "bolivie": "bolivia",
+  "canada": "canada",
+  "panama": "panama",
+  "costa rica": "costa rica",
+  "honduras": "honduras",
+  "jamaique": "jamaica",
+  "nigeria": "nigeria",
+  "ghana": "ghana",
+  "senegal": "senegal",
+  "algerie": "algeria",
+  "russie": "russia",
+  "qatar": "qatar",
+  "inde": "india",
+  "chine": "china",
+  "coree": "south korea",
+  "irlande": "ireland",
+
+  // --- Other API variants ------------------------------------------------
+  "rd congo": "congo dr",
+  "macedonia": "north macedonia",
+  "china pr": "china",
+  "hong kong china": "hong kong",
+  "the gambia": "gambia",
+  "south korea republic": "south korea",
+  "us virgin islands": "united states virgin islands",
+  "st kitts and nevis": "saint kitts and nevis",
+  "st lucia": "saint lucia",
+  "st vincent and the grenadines": "saint vincent and the grenadines",
+  "timor leste": "east timor",
+  "brunei darussalam": "brunei",
+  "lao pdr": "laos",
+  "syrian arab republic": "syria",
+  "tanzania united republic of": "tanzania",
+  "venezuela bolivarian republic of": "venezuela",
+  "bolivia plurinational state of": "bolivia",
+  "moldova republic of": "moldova",
 }
 
 export function normalizeTeamName(name: string): string {
@@ -37,7 +128,20 @@ export function normalizeTeamName(name: string): string {
 
 export function teamsMatch(left: string, right: string): boolean {
   if (!left || !right) return false
-  return normalizeTeamName(left) === normalizeTeamName(right)
+  const a = normalizeTeamName(left)
+  const b = normalizeTeamName(right)
+  if (a === b) return true
+
+  // Fuzzy fallback: token subset — handles partial matches like
+  // "congo" ↔ "congo dr", "korea republic" ↔ "south korea", etc.
+  // Directional qualifiers (north/south/east/west) prevent false cross-matches.
+  const tokensA = a.split(" ").filter(w => w.length > 1)
+  const tokensB = b.split(" ").filter(w => w.length > 1)
+  if (tokensA.length === 0 || tokensB.length === 0) return false
+
+  const allAinB = tokensA.every(t => tokensB.includes(t))
+  const allBinA = tokensB.every(t => tokensA.includes(t))
+  return allAinB || allBinA
 }
 
 // ---------------------------------------------------------------------------

@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache"
 
 export async function refreshMatchOdds(homeTeam: string, awayTeam: string, kickoff: string) {
   const { profile } = await requireUser()
-  if (!profile.isAdmin) return { ok: false as const, error: "Admin only" }
+  if (!profile.isAdmin) return { ok: false as const, error: "Admin only", errorCode: "FORBIDDEN" }
 
   const result = await fetchAndStoreOddsForMatch(homeTeam, awayTeam, new Date(kickoff))
   if (result.ok) {

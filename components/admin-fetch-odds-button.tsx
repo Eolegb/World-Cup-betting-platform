@@ -24,7 +24,10 @@ export function AdminFetchOddsButton({
       toast.success(`Cotes mises à jour (${res.odds?.source ?? "therundown"})`)
       window.location.reload()
     } else {
-      toast.error(res.error)
+      const details = res.debug
+        ? `\n\nRecherché: ${res.debug.searchedTeams.home} vs ${res.debug.searchedTeams.away}\nDates: ${res.debug.datesTried.join(', ')}\nTrouvés: ${res.debug.eventsFound.map(e => `${e.homeName} vs ${e.awayName}`).join(', ') || 'aucun'}`
+        : ''
+      toast.error(`[${res.errorCode ?? 'ERREUR'}] ${res.error}${details}`)
     }
     setLoading(false)
   }

@@ -23,7 +23,7 @@ function MatchCountdown({ kickoff }: { kickoff: Date | string }) {
   return <span className="flex items-center gap-1.5 text-xs font-medium tabular text-muted-foreground"><Clock className="h-3.5 w-3.5" />{String(hours).padStart(2, "0")}h{String(minutes).padStart(2, "0")}m</span>
 }
 
-function ScoreBlock({ home, away }: { home: number; away: number }) {
+function ScoreBlock({ home, away }: { home: number | string; away: number | string }) {
   return (
     <div className="flex items-center gap-2 rounded-lg bg-secondary/60 px-3 py-1.5 font-heading tabular">
       <span className="text-xl text-card-foreground">{home}</span>
@@ -35,7 +35,8 @@ function ScoreBlock({ home, away }: { home: number; away: number }) {
 
 export default function MatchCard({ match: m }: { match: MatchRow }) {
   const isLive = m.status === "live"
-  const showScore = m.status === "live" || m.status === "finished"
+  const isStaleScheduled = m.status === "scheduled" && (Date.now() - utcDate(m.kickoff).getTime()) > 130 * 60000
+  const showScore = m.status === "live" || m.status === "finished" || isStaleScheduled
   const colors = teamColors(m.homeTeam)
 
   return (
@@ -51,6 +52,7 @@ export default function MatchCard({ match: m }: { match: MatchRow }) {
           </span>
           {isLive && <LiveBadge kickoff={new Date(m.kickoff).toISOString()} />}
           {m.status === "finished" && <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">Terminé</span>}
+          {isStaleScheduled && <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">Terminé</span>}
         </div>
 
         <div className="flex items-center justify-between gap-3">
@@ -58,7 +60,12 @@ export default function MatchCard({ match: m }: { match: MatchRow }) {
             <span className="shrink-0 text-2xl leading-none">{flagForTeam(m.homeTeam, m.homeTeamCode)}</span>
             <span className="truncate font-medium text-card-foreground">{m.homeTeam}</span>
           </div>
-          {showScore ? <ScoreBlock home={m.homeScore} away={m.awayScore} /> : null}
+          {showScore ? (
+            <ScoreBlock
+              home={isStaleScheduled ? "?" : m.homeScore}
+              away={isStaleScheduled ? "?" : m.awayScore}
+            />
+          ) : null}
         </div>
 
         <div className="mt-2 flex items-center justify-between gap-3">
@@ -69,7 +76,7 @@ export default function MatchCard({ match: m }: { match: MatchRow }) {
         </div>
 
         <div className="mt-3 flex items-center justify-between border-t border-border/30 pt-3">
-          {m.status === "finished" ? (
+          {m.status === "finished" || isStaleScheduled ? (
             <span className="text-xs text-muted-foreground">Résultat final</span>
           ) : m.status === "scheduled" ? (
             <MatchCountdown kickoff={m.kickoff} />
