@@ -112,8 +112,8 @@ export async function fetchRundownOdds(): Promise<Map<string, NormalizedOdds>> {
 
   const oddsMap = new Map<string, NormalizedOdds>()
 
-  // Fetch next 7 days of FIFA events
-  for (let d = 0; d < 7; d++) {
+  // Fetch today + next 8 days of FIFA events
+  for (let d = -1; d < 9; d++) {
     const date = new Date()
     date.setDate(date.getDate() + d)
     const dateStr = date.toISOString().split("T")[0]
@@ -167,9 +167,9 @@ export async function fetchAndStoreOddsForMatch(homeTeam: string, awayTeam: stri
   const key = getKey()
   if (!key) return { ok: false, error: "THERUNDOWN_KEY not configured" }
 
-  // Try the match date ± 1 day to account for UTC offset
+  // Try the match date ± 2 days to account for UTC offset and timezone grouping
   const dates: string[] = []
-  for (let d = -1; d <= 1; d++) {
+  for (let d = -2; d <= 2; d++) {
     const dt = new Date(kickoff)
     dt.setDate(dt.getDate() + d)
     dates.push(dt.toISOString().split("T")[0])
