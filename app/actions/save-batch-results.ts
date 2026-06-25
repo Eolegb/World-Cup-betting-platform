@@ -106,12 +106,15 @@ export async function saveBatchResults(matches: MatchInput[]) {
       settled += result.settled
     } else if (existing.status === "live" || existing.status === "scheduled") {
       // -----------------------------------------------------------------------
-      // Match en cours : mise à jour du score + passage scheduled → live
+      // Match en cours : mise à jour du score live
+      // Ne passe en "live" que si le match a effectivement démarré (elapsed > 0)
       // -----------------------------------------------------------------------
+      const trulyStarted = (m.elapsed ?? 0) > 0
+
       await db
         .update(match)
         .set({
-          status: "live",
+          status: trulyStarted ? "live" : existing.status,
           homeScore: m.homeScore,
           awayScore: m.awayScore,
           elapsed: m.elapsed ?? undefined,

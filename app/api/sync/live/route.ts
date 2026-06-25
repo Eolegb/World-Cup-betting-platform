@@ -77,14 +77,38 @@ export async function GET(req: Request) {
     }
 
     // -------------------------------------------------------------------------
-    // 1) scheduled → live : matchs dont le coup d'envoi est passé
+    // 1) scheduled → live : matchs dont le coup d'envoi est passé ET confirmé
+    //    par worldcup26.ir (score présent ou time_elapsed > 0)
     // -------------------------------------------------------------------------
     const startedMatches = await db
-      .select({ id: match.id, kickoff: match.kickoff })
+      .select({ id: match.id, homeTeam: match.homeTeam, awayTeam: match.awayTeam, kickoff: match.kickoff })
       .from(match)
       .where(and(eq(match.status, "scheduled"), lt(match.kickoff, now)))
 
     for (const m of startedMatches) {
+      // Ne passer en live que si worldcup26 confirme que le match a commencé
+      const wc26Live = wc26Games.find(
+        (g) =>
+          teamsMatch(g.home_team_name_en, m.homeTeam) &&
+          teamsMatch(g.away_team_name_en, m.awayTeam),
+      )
+
+      let shouldGoLive = false
+      if (wc26Live) {
+        // Le match a commencé si : score non-null, ou time_elapsed est un nombre > 0
+        const hasScore = wc26Live.home_score !== "null" && wc26Live.home_score !== ""
+        const elapsed = parseInt(wc26Live.time_elapsed, 10)
+        const hasElapsed = !isNaN(elapsed) && elapsed > 0
+        shouldGoLive = hasScore || hasElapsed
+      } else {
+        // Si pas de données WC26, on passe en live seulement si le match a démarré
+        // depuis plus de 2h30 (safety fallback)
+        const ageMin = (Date.now() - m.kickoff.getTime()) / 60000
+        shouldGoLive = ageMin > 150
+      }
+
+      if (!shouldGoLive) continue
+
       await db
         .update(match)
         .set({

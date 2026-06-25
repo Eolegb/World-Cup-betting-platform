@@ -350,12 +350,22 @@ export async function syncWC26Fixtures(): Promise<WC26SyncResult> {
       const existingByExtId = byExternalId.get(extId)
       if (existingByExtId) {
         const existingStatus = existingByExtId.status
+        // Ne pas rétrograder un match finished → scheduled
         if (existingStatus === "finished" && status === "scheduled") continue
-        if (existingStatus === "live" && status === "scheduled") continue
+        // Si WC26 dit "scheduled" et le match est "live" à tort → corriger
+        // (ne pas skip — on veut réparer les faux "live")
 
         await db
           .update(match)
-          .set({ homeScore, awayScore, status, lastSyncedAt: new Date() })
+          .set({
+            homeScore,
+            awayScore,
+            status,
+            kickoff,    // WC26 a les bons horaires
+            stage: stage || undefined,
+            venue: venue || undefined,
+            lastSyncedAt: new Date(),
+          })
           .where(eq(match.id, existingByExtId.id))
         result.updated++
         continue
