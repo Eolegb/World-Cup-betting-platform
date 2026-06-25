@@ -1,15 +1,30 @@
 import { requireUser, AppShell } from "@/components/app-shell"
-import { buildBracketData, isBracketVisible, isBracketPublished, BRACKET_PUBLIC_DATE, setBracketVisibility } from "@/lib/bracket"
+import { buildBracketData, isBracketVisible, isBracketPublished, BRACKET_PUBLIC_DATE } from "@/lib/bracket"
 import { BracketTree } from "@/components/bracket-tree"
-import { revalidatePath } from "next/cache"
+import { toggleBracketVisibility } from "@/app/actions/bracket"
 import { Trophy, EyeOff, Eye } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 
 export default async function BracketPage() {
   const { profile: p } = await requireUser()
-  const visible = await isBracketVisible(p.isAdmin)
-  const published = await isBracketPublished()
+
+  let visible = false
+  let published = false
+  let bracketError = ""
+
+  try {
+    visible = await isBracketVisible(p.isAdmin)
+  } catch {
+    // Setting table might not exist yet — admin can always preview
+    visible = p.isAdmin
+  }
+
+  try {
+    published = await isBracketPublished()
+  } catch {
+    published = false
+  }
 
   if (!visible) {
     return (
@@ -31,8 +46,14 @@ export default async function BracketPage() {
     )
   }
 
-  const bracket = await buildBracketData()
-  const rounds = bracket.rounds
+  // Build bracket — fail gracefully
+  let bracket
+  try {
+    bracket = await buildBracketData()
+  } catch (e) {
+    bracketError = e instanceof Error ? e.message : "Erreur inconnue"
+    bracket = { rounds: [], thirdPlace: null, final: null }
+  }
 
   return (
     <AppShell profile={p}>
@@ -47,11 +68,7 @@ export default async function BracketPage() {
           </div>
 
           {p.isAdmin && (
-            <form action={async () => {
-              "use server"
-              await setBracketVisibility(!published)
-              revalidatePath("/bracket")
-            }}>
+            <form action={toggleBracketVisibility}>
               <button
                 type="submit"
                 className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${
@@ -76,10 +93,20 @@ export default async function BracketPage() {
           )}
         </div>
 
-        {/* Bracket */}
-        <div className="rounded-2xl border border-border/40 glass p-4 sm:p-6">
-          <BracketTree data={bracket} />
-        </div>
+        {/* Bracket or error */}
+        {bracketError ? (
+          <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6 text-center">
+            <p className="text-sm text-red-400">Erreur lors du chargement du bracket :</p>
+            <p className="mt-1 text-xs text-muted-foreground font-mono">{bracketError}</p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Vérifie que la table <code>setting</code> existe (run <code>npx drizzle-kit push</code>).
+            </p>
+          </div>
+        ) : (
+          <div className="rounded-2xl border border-border/40 glass p-4 sm:p-6">
+            <BracketTree data={bracket} />
+          </div>
+        )}
 
         {/* Legend */}
         <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">

@@ -226,22 +226,30 @@ export async function isBracketVisible(isAdmin: boolean): Promise<boolean> {
 
 /** Retourne true si l'admin a explicitement publié le bracket. */
 export async function isBracketPublished(): Promise<boolean> {
-  const [row] = await db
-    .select({ value: setting.value })
-    .from(setting)
-    .where(eq(setting.key, "bracket_visible"))
-    .limit(1)
-
-  return row ? (row.value as boolean) === true : false
+  try {
+    const [row] = await db
+      .select({ value: setting.value })
+      .from(setting)
+      .where(eq(setting.key, "bracket_visible"))
+      .limit(1)
+    return row ? (row.value as boolean) === true : false
+  } catch {
+    // Table setting might not exist yet
+    return false
+  }
 }
 
 /** Active/désactive la visibilité du bracket (admin only). */
 export async function setBracketVisibility(visible: boolean): Promise<void> {
-  await db
-    .insert(setting)
-    .values({ key: "bracket_visible", value: visible })
-    .onConflictDoUpdate({
-      target: setting.key,
-      set: { value: visible, updatedAt: new Date() },
-    })
+  try {
+    await db
+      .insert(setting)
+      .values({ key: "bracket_visible", value: visible })
+      .onConflictDoUpdate({
+        target: setting.key,
+        set: { value: visible, updatedAt: new Date() },
+      })
+  } catch (e) {
+    console.error("[bracket] Failed to set visibility:", e)
+  }
 }
