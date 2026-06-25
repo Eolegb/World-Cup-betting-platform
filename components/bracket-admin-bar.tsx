@@ -17,16 +17,12 @@ export function BracketAdminBar({ published }: { published: boolean }) {
       const data = await res.json()
 
       if (data.ok) {
-        const msg = [
-          `${data.inserted} nouveaux matchs`,
-          data.inserted_ids?.length > 0
-            ? `→ ${data.inserted_ids.slice(0, 5).join(", ")}${data.inserted_ids.length > 5 ? ` +${data.inserted_ids.length - 5} autres` : ""}`
-            : "",
-        ].filter(Boolean).join("\n")
-
-        toast.success(data.inserted > 0 ? msg : "Aucun nouveau match — le bracket est à jour", {
-          duration: 6000,
-        })
+        toast.success(
+          data.inserted > 0
+            ? `${data.inserted} nouvelles équipes dans le bracket — ${data.summary?.scheduled ?? 0} matchs à venir`
+            : "Bracket et groupes à jour",
+          { duration: 5000 }
+        )
       } else {
         toast.error(data.errors?.[0] ?? "Erreur de synchro")
       }

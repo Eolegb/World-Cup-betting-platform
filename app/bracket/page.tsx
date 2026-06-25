@@ -1,6 +1,7 @@
 import { requireUser, AppShell } from "@/components/app-shell"
-import { buildBracketData, isBracketVisible, isBracketPublished } from "@/lib/bracket"
+import { buildBracketData, isBracketVisible, isBracketPublished, fetchGroupStandings, type GroupStanding } from "@/lib/bracket"
 import { BracketTree } from "@/components/bracket-tree"
+import { GroupStandings } from "@/components/group-standings"
 import { toggleBracketVisibility } from "@/app/actions/bracket"
 import { BracketAdminBar } from "@/components/bracket-admin-bar"
 import { Trophy, EyeOff, Eye } from "lucide-react"
@@ -13,6 +14,7 @@ export default async function BracketPage() {
   let visible = false
   let published = false
   let bracketError = ""
+  let groups: GroupStanding[] = []
 
   try {
     visible = await isBracketVisible(p.isAdmin)
@@ -24,6 +26,15 @@ export default async function BracketPage() {
     published = await isBracketPublished()
   } catch {
     published = false
+  }
+
+  // Fetch group standings (admin always sees them)
+  if (p.isAdmin) {
+    try {
+      groups = await fetchGroupStandings()
+    } catch {
+      // ignore — WC26 might be down
+    }
   }
 
   if (!visible) {
@@ -68,7 +79,7 @@ export default async function BracketPage() {
 
   return (
     <AppShell profile={p}>
-      <div className="space-y-4">
+      <div className="space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
@@ -97,6 +108,14 @@ export default async function BracketPage() {
           </div>
         </div>
 
+        {/* Group standings */}
+        {groups.length > 0 && (
+          <section>
+            <h2 className="mb-2 font-heading text-sm uppercase tracking-wider text-muted-foreground/70">Phases de groupes</h2>
+            <GroupStandings groups={groups} />
+          </section>
+        )}
+
         {/* Bracket or error */}
         {bracketError ? (
           <div className="rounded-2xl border border-red-500/20 bg-red-500/5 p-6 text-center">
@@ -107,21 +126,27 @@ export default async function BracketPage() {
             </p>
           </div>
         ) : (
-          <div className="rounded-2xl border border-border/40 glass p-4 sm:p-6">
-            <BracketTree data={bracket} />
-          </div>
+          <section>
+            <h2 className="mb-2 font-heading text-sm uppercase tracking-wider text-muted-foreground/70">Tableau final</h2>
+            <div className="rounded-2xl border border-border/40 glass p-4 sm:p-6">
+              <BracketTree data={bracket} />
+            </div>
+          </section>
         )}
 
         {/* Legend */}
         <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-gold" /> Vainqueur
+            <span className="h-2 w-2 rounded-full bg-emerald-400" /> Qualifié
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-amber-400/60" /> Possible
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-red-400/40" /> Éliminé
           </span>
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-live animate-pulse" /> En direct
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-border" /> À déterminer
           </span>
         </div>
       </div>

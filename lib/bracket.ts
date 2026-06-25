@@ -31,6 +31,95 @@ export type BracketData = {
 }
 
 // ---------------------------------------------------------------------------
+// Types — Groupes & qualifications
+// ---------------------------------------------------------------------------
+
+export type GroupTeam = {
+  teamId: string
+  name: string
+  fifaCode: string
+  flag: string
+  mp: number
+  w: number
+  d: number
+  l: number
+  pts: number
+  gf: number
+  ga: number
+  gd: number
+  position: number // 0 = 1st, 1 = 2nd, 2 = 3rd, 3 = 4th
+  status: "qualified" | "possible" | "eliminated"
+}
+
+export type GroupStanding = {
+  name: string
+  teams: GroupTeam[]
+}
+
+// ---------------------------------------------------------------------------
+// Fetch group standings from worldcup26.ir
+// ---------------------------------------------------------------------------
+
+const WC26_BASE = "https://worldcup26.ir"
+
+export async function fetchGroupStandings(): Promise<GroupStanding[]> {
+  const [groupsRes, teamsRes] = await Promise.all([
+    fetch(`${WC26_BASE}/get/groups`, { cache: "no-store" }),
+    fetch(`${WC26_BASE}/get/teams`, { cache: "no-store" }),
+  ])
+
+  if (!groupsRes.ok || !teamsRes.ok) throw new Error("WC26 API error")
+
+  const groupsData = await groupsRes.json()
+  const teamsData = await teamsRes.json()
+
+  const rawGroups = (groupsData.groups ?? []) as {
+    name: string
+    teams: { team_id: string; mp: string; w: string; l: string; d: string; pts: string; gf: string; ga: string; gd: string }[]
+  }[]
+
+  const rawTeams = (teamsData.teams ?? []) as {
+    id: string; name_en: string; fifa_code?: string; flag?: string
+  }[]
+
+  const teamMap = new Map<string, { name: string; fifaCode: string; flag: string }>()
+  for (const t of rawTeams) {
+    teamMap.set(t.id, {
+      name: t.name_en,
+      fifaCode: t.fifa_code ?? "",
+      flag: t.flag ?? "",
+    })
+  }
+
+  const standings: GroupStanding[] = []
+
+  for (const g of rawGroups) {
+    const teams: GroupTeam[] = g.teams.map((t, idx) => {
+      const info = teamMap.get(t.team_id) ?? { name: `Team ${t.team_id}`, fifaCode: "", flag: "" }
+      return {
+        teamId: t.team_id,
+        name: info.name,
+        fifaCode: info.fifaCode,
+        flag: info.flag,
+        mp: parseInt(t.mp) || 0,
+        w: parseInt(t.w) || 0,
+        d: parseInt(t.d) || 0,
+        l: parseInt(t.l) || 0,
+        pts: parseInt(t.pts) || 0,
+        gf: parseInt(t.gf) || 0,
+        ga: parseInt(t.ga) || 0,
+        gd: parseInt(t.gd) || 0,
+        position: idx,
+        status: idx < 2 ? "qualified" : idx === 2 ? "possible" : "eliminated",
+      }
+    })
+    standings.push({ name: g.name, teams })
+  }
+
+  return standings
+}
+
+// ---------------------------------------------------------------------------
 // Structure du bracket WC26 2026
 // ---------------------------------------------------------------------------
 
