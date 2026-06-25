@@ -2,10 +2,9 @@
 
 import { cn } from "@/lib/utils"
 import { flagForTeam } from "@/lib/flags"
-import { teamColors } from "@/lib/team-colors"
 import { kickoffTime } from "@/lib/datetime"
-import type { BracketData, BracketSlot, BracketRound } from "@/lib/bracket"
-import { Trophy, Medal } from "lucide-react"
+import type { BracketData, BracketSlot } from "@/lib/bracket"
+import { Trophy, Medal, ChevronRight, ChevronLeft } from "lucide-react"
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -14,15 +13,13 @@ function shortName(name: string): string {
   return name.slice(0, 10) + "…"
 }
 
-function MatchSlot({ slot, isWinner }: { slot: BracketSlot; isWinner: boolean }) {
+function MatchSlot({ slot, isWinner, side }: { slot: BracketSlot; isWinner: boolean; side: "left" | "right" | "center" }) {
   const m = slot.match
-  const colors = m ? teamColors(m.homeTeam) : { primary: "#6b7280", secondary: "#9ca3af" }
 
-  // Équipe non déterminée
   if (!m) {
     return (
-      <div className="rounded-xl border border-dashed border-border/40 bg-secondary/10 px-2 py-1.5 text-center min-w-[120px]">
-        <span className="text-[10px] text-muted-foreground">À déterminer</span>
+      <div className="rounded-lg border border-dashed border-border/30 bg-secondary/5 px-2 py-1.5 text-center min-w-[110px]">
+        <span className="text-[9px] text-muted-foreground/60">?</span>
       </div>
     )
   }
@@ -30,105 +27,95 @@ function MatchSlot({ slot, isWinner }: { slot: BracketSlot; isWinner: boolean })
   const homeWin = m.status === "finished" && m.homeScore > m.awayScore
   const awayWin = m.status === "finished" && m.awayScore > m.homeScore
   const isLive = m.status === "live"
-  const hasStarted = m.status === "live" || m.status === "finished"
+  const hasScore = m.status === "live" || m.status === "finished"
 
   return (
     <div
       className={cn(
-        "rounded-xl border bg-background px-3 py-2 min-w-[130px] transition-all",
-        isWinner ? "border-gold/60 shadow-[0_0_12px_rgba(234,179,8,0.15)]" : "border-border/50",
-        isLive && "border-live/60"
+        "rounded-lg border bg-background px-2.5 py-1.5 min-w-[115px] transition-all",
+        isWinner ? "border-gold/60 shadow-[0_0_8px_rgba(234,179,8,0.12)]" : "border-border/40",
+        isLive && "border-live/50"
       )}
     >
-      {/* Home team */}
-      <div className="flex items-center gap-1.5">
-        <span className="text-sm leading-none">{flagForTeam(m.homeTeam, m.homeTeamCode)}</span>
-        <span
-          className={cn(
-            "text-xs truncate flex-1",
-            homeWin && "font-bold text-foreground",
-            !homeWin && hasStarted && "text-muted-foreground"
-          )}
-        >
+      {/* Home */}
+      <div className="flex items-center gap-1">
+        <span className="text-xs leading-none shrink-0">{flagForTeam(m.homeTeam, m.homeTeamCode)}</span>
+        <span className={cn("text-[11px] truncate flex-1", homeWin && "font-bold", !homeWin && hasScore && "text-muted-foreground/70")}>
           {shortName(m.homeTeam)}
         </span>
-        {hasStarted && (
-          <span className={cn("text-xs font-mono tabular", homeWin ? "text-foreground font-bold" : "text-muted-foreground")}>
+        {hasScore && (
+          <span className={cn("text-[11px] font-mono tabular shrink-0", homeWin && "font-bold")}>
             {m.homeScore}
           </span>
         )}
       </div>
-      {/* Away team */}
-      <div className="flex items-center gap-1.5 mt-0.5">
-        <span className="text-sm leading-none">{flagForTeam(m.awayTeam, m.awayTeamCode)}</span>
-        <span
-          className={cn(
-            "text-xs truncate flex-1",
-            awayWin && "font-bold text-foreground",
-            !awayWin && hasStarted && "text-muted-foreground"
-          )}
-        >
+      {/* Away */}
+      <div className="flex items-center gap-1 mt-0.5">
+        <span className="text-xs leading-none shrink-0">{flagForTeam(m.awayTeam, m.awayTeamCode)}</span>
+        <span className={cn("text-[11px] truncate flex-1", awayWin && "font-bold", !awayWin && hasScore && "text-muted-foreground/70")}>
           {shortName(m.awayTeam)}
         </span>
-        {hasStarted && (
-          <span className={cn("text-xs font-mono tabular", awayWin ? "text-foreground font-bold" : "text-muted-foreground")}>
+        {hasScore && (
+          <span className={cn("text-[11px] font-mono tabular shrink-0", awayWin && "font-bold")}>
             {m.awayScore}
           </span>
         )}
       </div>
-      {/* Status line */}
-      {m.status === "scheduled" && (
-        <div className="mt-1 text-[9px] text-muted-foreground text-right">{kickoffTime(m.kickoff)}</div>
-      )}
-      {isLive && (
-        <div className="mt-1 flex items-center justify-end gap-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-live animate-pulse" />
-          <span className="text-[9px] text-live font-medium">LIVE</span>
-        </div>
-      )}
-      {m.status === "finished" && (
-        <div className="mt-1 text-[9px] text-muted-foreground text-right">Terminé</div>
-      )}
+      {/* Status */}
+      <div className="mt-0.5 text-right">
+        {m.status === "scheduled" && <span className="text-[8px] text-muted-foreground">{kickoffTime(m.kickoff)}</span>}
+        {isLive && (
+          <span className="inline-flex items-center gap-1 text-[8px] text-live font-medium">
+            <span className="h-1.5 w-1.5 rounded-full bg-live animate-pulse" />LIVE
+          </span>
+        )}
+        {m.status === "finished" && <span className="text-[8px] text-muted-foreground">Terminé</span>}
+      </div>
     </div>
   )
 }
 
-// ── Round Column ─────────────────────────────────────────────────────────────
+// ── Bracket Column ───────────────────────────────────────────────────────────
 
-function RoundColumn({
-  round,
+function BracketColumn({
   slots,
-  allSlots,
+  roundName,
+  side,
 }: {
-  round: BracketRound["name"]
-  shortName: string
   slots: BracketSlot[]
-  allSlots: Map<number, BracketSlot>
+  roundName: string
+  side: "left" | "right"
 }) {
-  const getWinner = (slot: BracketSlot): string | null => {
-    if (!slot.match || slot.match.status !== "finished") return null
-    if (slot.match.homeScore > slot.match.awayScore) return slot.match.homeTeam
-    if (slot.match.awayScore > slot.match.homeScore) return slot.match.awayTeam
-    return null
+  if (slots.length === 0) return null
+
+  const getWinner = (s: BracketSlot) => {
+    if (!s.match || s.match.status !== "finished") return null
+    return s.match.homeScore > s.match.awayScore ? s.match.homeTeam
+      : s.match.awayScore > s.match.homeScore ? s.match.awayTeam
+      : null
   }
 
+  // Calculer la hauteur pour que les matchs soient espacés proportionnellement
+  const pairs = Math.ceil(slots.length / 2)
+  const gap = slots.length <= 4 ? "gap-2" : slots.length <= 8 ? "gap-1.5" : "gap-1"
+
   return (
-    <div className="flex flex-col justify-around gap-1" style={{ minHeight: slots.length * 52 + "px" }}>
+    <div className={cn("flex flex-col justify-around", gap)}>
       {slots.map((slot) => {
         const winner = getWinner(slot)
         return (
-          <div key={slot.wc26MatchId} className="flex items-center gap-2">
-            {/* Connector bracket */}
-            <div className="hidden lg:flex items-center">
-              {/* Right-side connector for rounds other than R32 */}
-              <ConnectorBracket
-                slot={slot}
-                allSlots={allSlots}
-                showLeft={slot.round !== "R32"}
-                showRight={slot.round !== "FINAL" && slot.round !== "3RD"}
-              />
-            </div>
-            <MatchSlot slot={slot} isWinner={!!winner} />
+          <div key={slot.wc26MatchId} className="flex items-center gap-0.5">
+            {side === "left" && (
+              <div className="hidden sm:block w-3">
+                {slot.round !== "R32" && <ChevronRight className="h-3 w-3 text-border/40" />}
+              </div>
+            )}
+            <MatchSlot slot={slot} isWinner={!!winner} side={side} />
+            {side === "right" && (
+              <div className="hidden sm:block w-3">
+                {slot.round !== "R32" && <ChevronLeft className="h-3 w-3 text-border/40" />}
+              </div>
+            )}
           </div>
         )
       })}
@@ -136,47 +123,28 @@ function RoundColumn({
   )
 }
 
-// ── Connector Lines ──────────────────────────────────────────────────────────
+// ── Half Bracket ─────────────────────────────────────────────────────────────
 
-function ConnectorBracket({
-  slot,
-  allSlots,
-  showLeft,
-  showRight,
-}: {
-  slot: BracketSlot
-  allSlots: Map<number, BracketSlot>
-  showLeft: boolean
-  showRight: boolean
-}) {
+function HalfBracket({ half, side }: { half: BracketData["left"]; side: "left" | "right" }) {
+  const orderedRounds = side === "left"
+    ? half.rounds // R32, R16, QF, SF (left to right)
+    : [...half.rounds].reverse() // SF, QF, R16, R32 (center to right)
+
+  // Hauteur proportionnelle : R32 = 8 pairs, R16 = 4, QF = 2, SF = 1
+  const heights: Record<string, number> = { R32: 8, R16: 4, QF: 2, SF: 1 }
+
   return (
-    <div className="flex items-center shrink-0" style={{ width: "40px", height: "1px" }}>
-      {/* Simple horizontal line connector */}
-      <div className="w-full h-px bg-border/60 relative">
-        {showLeft && <div className="absolute left-0 top-1/2 -translate-y-1/2 h-2 w-1 rounded-r-sm bg-border/60" />}
-        {showRight && <div className="absolute right-0 top-1/2 -translate-y-1/2 h-2 w-1 rounded-l-sm bg-border/60" />}
-      </div>
-    </div>
-  )
-}
-
-// ── Title ────────────────────────────────────────────────────────────────────
-
-function BracketTitle({ rounds }: { rounds: { shortName: string }[] }) {
-  return (
-    <div className="hidden lg:flex items-center gap-16 mb-3 pl-2">
-      {rounds.map((r, i) => (
-        <span
-          key={i}
-          className="text-xs font-semibold uppercase tracking-wider text-muted-foreground text-center"
-          style={{ minWidth: "130px" }}
-        >
-          {r.shortName}
-        </span>
+    <div className="flex items-center gap-1 sm:gap-2">
+      {orderedRounds.map((round, ri) => (
+        <div key={ri} className="flex flex-col items-center">
+          <span className="text-[8px] font-semibold uppercase text-muted-foreground/50 mb-1">
+            {round.shortName}
+          </span>
+          <div style={{ minHeight: (round.slots.length > 0 ? heights[round.slots[0].round] ?? 4 : 4) * 52 + "px" }}>
+            <BracketColumn slots={round.slots} roundName={round.name} side={side} />
+          </div>
+        </div>
       ))}
-      <span className="text-xs font-semibold uppercase tracking-wider text-primary text-center" style={{ minWidth: "130px" }}>
-        FINALE
-      </span>
     </div>
   )
 }
@@ -184,63 +152,50 @@ function BracketTitle({ rounds }: { rounds: { shortName: string }[] }) {
 // ── Main Component ───────────────────────────────────────────────────────────
 
 export function BracketTree({ data }: { data: BracketData }) {
-  const { rounds, thirdPlace, final: finalSlot } = data
+  const { left, right, final: finalSlot, thirdPlace } = data
 
-  // Build a flat map of all slots by wc26MatchId
-  const allSlots = new Map<number, BracketSlot>()
-  for (const round of rounds) {
-    for (const s of round.slots) allSlots.set(s.wc26MatchId, s)
-  }
-  if (thirdPlace) allSlots.set(thirdPlace.wc26MatchId, thirdPlace)
-  if (finalSlot) allSlots.set(finalSlot.wc26MatchId, finalSlot)
-
-  if (rounds.length === 0) {
+  if (left.rounds.length === 0 && right.rounds.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border p-10 text-center">
-        <Trophy className="mx-auto h-8 w-8 text-muted-foreground mb-2" />
-        <p className="text-muted-foreground">Le bracket sera disponible après la fin de la phase de groupes.</p>
+        <Trophy className="mx-auto h-10 w-10 text-muted-foreground/30 mb-2" />
+        <p className="text-sm text-muted-foreground">Les matchs à élimination directe apparaîtront ici après la phase de groupes.</p>
       </div>
     )
   }
 
   return (
-    <div className="overflow-x-auto pb-4 -mx-4 px-4">
-      {/* Column headers (desktop only) */}
-      <BracketTitle rounds={rounds} />
+    <div className="overflow-x-auto -mx-2 px-2">
+      <div className="flex items-start justify-center gap-1 sm:gap-3 min-w-max py-2">
 
-      {/* Bracket grid */}
-      <div className="flex items-start gap-4 lg:gap-10 min-w-max">
-        {rounds.map((round, ri) => (
-          <div key={ri} className="flex flex-col items-center gap-2">
-            {/* Mobile round label */}
-            <span className="lg:hidden text-[10px] font-semibold uppercase text-muted-foreground mb-1">
-              {round.shortName}
-            </span>
-            <RoundColumn
-              round={round.name}
-              shortName={round.shortName}
-              slots={round.slots}
-              allSlots={allSlots}
-            />
-          </div>
-        ))}
+        {/* ── LEFT HALF ────────────────────────────────────────────────── */}
+        <HalfBracket half={left} side="left" />
 
-        {/* Final + Third place column */}
-        <div className="flex flex-col items-center gap-6">
-          <span className="lg:hidden text-[10px] font-semibold uppercase text-primary mb-1">FINALE</span>
+        {/* ── CENTER (Final + 3rd place) ────────────────────────────────── */}
+        <div className="flex flex-col items-center gap-3 shrink-0 px-1 sm:px-3">
           {finalSlot && (
             <div className="flex flex-col items-center gap-1">
-              <Trophy className="h-4 w-4 text-gold" />
-              <MatchSlot slot={finalSlot} isWinner={false} />
+              <Trophy className="h-5 w-5 text-gold" />
+              <div className="rounded-lg border-2 border-gold/30 bg-gold/5 px-3 py-2 min-w-[130px]">
+                <MatchSlot slot={finalSlot} isWinner={false} side="center" />
+              </div>
+              <span className="text-[8px] font-bold uppercase text-gold">Finale</span>
             </div>
           )}
+          <div className="h-4" />
           {thirdPlace && (
             <div className="flex flex-col items-center gap-1">
               <Medal className="h-4 w-4 text-muted-foreground" />
-              <MatchSlot slot={thirdPlace} isWinner={false} />
+              <div className="rounded-lg border border-border/30 bg-secondary/5 px-3 py-1.5 min-w-[130px]">
+                <MatchSlot slot={thirdPlace} isWinner={false} side="center" />
+              </div>
+              <span className="text-[8px] font-semibold uppercase text-muted-foreground">3ᵉ place</span>
             </div>
           )}
         </div>
+
+        {/* ── RIGHT HALF ───────────────────────────────────────────────── */}
+        <HalfBracket half={right} side="right" />
+
       </div>
     </div>
   )

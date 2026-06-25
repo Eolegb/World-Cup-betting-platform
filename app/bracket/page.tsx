@@ -1,7 +1,8 @@
 import { requireUser, AppShell } from "@/components/app-shell"
-import { buildBracketData, isBracketVisible, isBracketPublished, BRACKET_PUBLIC_DATE } from "@/lib/bracket"
+import { buildBracketData, isBracketVisible, isBracketPublished } from "@/lib/bracket"
 import { BracketTree } from "@/components/bracket-tree"
 import { toggleBracketVisibility } from "@/app/actions/bracket"
+import { BracketAdminBar } from "@/components/bracket-admin-bar"
 import { Trophy, EyeOff, Eye } from "lucide-react"
 
 export const dynamic = "force-dynamic"
@@ -16,7 +17,6 @@ export default async function BracketPage() {
   try {
     visible = await isBracketVisible(p.isAdmin)
   } catch {
-    // Setting table might not exist yet — admin can always preview
     visible = p.isAdmin
   }
 
@@ -46,51 +46,55 @@ export default async function BracketPage() {
     )
   }
 
-  // Build bracket — fail gracefully
+  // Build bracket
   let bracket
   try {
     bracket = await buildBracketData()
   } catch (e) {
     bracketError = e instanceof Error ? e.message : "Erreur inconnue"
-    bracket = { rounds: [], thirdPlace: null, final: null }
+    bracket = { left: { rounds: [] }, right: { rounds: [] }, thirdPlace: null, final: null }
   }
+
+  // Count how many KO matches have both teams determined
+  const koSlots = [
+    ...bracket.left.rounds.flatMap(r => r.slots),
+    ...bracket.right.rounds.flatMap(r => r.slots),
+    bracket.final,
+    bracket.thirdPlace,
+  ].filter(Boolean) as Exclude<typeof bracket.final, null>[]
+
+  const determined = koSlots.filter(s => s.match).length
+  const total = koSlots.length
 
   return (
     <AppShell profile={p}>
       <div className="space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="font-heading text-2xl text-foreground">Bracket du tournoi</h1>
             <p className="text-sm text-muted-foreground">
-              Tableau des phases finales — Coupe du Monde 2026
+              Tableau final — {determined}/{total} matchs déterminés
             </p>
           </div>
 
-          {p.isAdmin && (
-            <form action={toggleBracketVisibility}>
-              <button
-                type="submit"
-                className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-medium transition-colors ${
-                  published
-                    ? "border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20"
-                    : "border-green-500/30 bg-green-500/10 text-green-400 hover:bg-green-500/20"
-                }`}
-              >
-                {published ? (
-                  <>
-                    <EyeOff className="h-4 w-4" />
-                    Masquer le bracket
-                  </>
-                ) : (
-                  <>
-                    <Eye className="h-4 w-4" />
-                    Publier le bracket
-                  </>
-                )}
-              </button>
-            </form>
-          )}
+          <div className="flex items-center gap-2">
+            {p.isAdmin && <BracketAdminBar published={published} />}
+            {p.isAdmin && (
+              <form action={toggleBracketVisibility}>
+                <button
+                  type="submit"
+                  className={`inline-flex items-center gap-2 rounded-xl border px-3 py-2 text-sm font-medium transition-colors ${
+                    published
+                      ? "border-red-500/30 bg-red-500/10 text-red-400 hover:bg-red-500/20"
+                      : "border-green-500/30 bg-green-500/10 text-green-400 hover:bg-green-500/20"
+                  }`}
+                >
+                  {published ? <><EyeOff className="h-4 w-4" /> Masquer</> : <><Eye className="h-4 w-4" /> Publier</>}
+                </button>
+              </form>
+            )}
+          </div>
         </div>
 
         {/* Bracket or error */}
@@ -115,6 +119,9 @@ export default async function BracketPage() {
           </span>
           <span className="flex items-center gap-1.5">
             <span className="h-2 w-2 rounded-full bg-live animate-pulse" /> En direct
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2 w-2 rounded-full bg-border" /> À déterminer
           </span>
         </div>
       </div>
