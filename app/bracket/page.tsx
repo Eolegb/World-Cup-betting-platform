@@ -79,13 +79,13 @@ export default async function BracketPage() {
 
   return (
     <AppShell profile={p}>
-      <div className="space-y-6">
+      <div className="space-y-8">
         {/* Header */}
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="font-heading text-2xl text-foreground">Bracket du tournoi</h1>
+            <h1 className="font-heading text-2xl text-foreground">Coupe du Monde 2026</h1>
             <p className="text-sm text-muted-foreground">
-              Tableau final — {determined}/{total} matchs déterminés
+              Tableau des phases finales — {determined}/{total} matchs
             </p>
           </div>
 
@@ -111,10 +111,20 @@ export default async function BracketPage() {
         {/* Group standings */}
         {groups.length > 0 && (
           <section>
-            <h2 className="mb-2 font-heading text-sm uppercase tracking-wider text-muted-foreground/70">Phases de groupes</h2>
+            <div className="flex items-center gap-3 mb-3">
+              <h2 className="font-heading text-lg text-foreground">Phase de groupes</h2>
+              <div className="h-px flex-1 bg-border/40" />
+            </div>
             <GroupStandings groups={groups} />
           </section>
         )}
+
+        {/* Separator */}
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-border/40" />
+          <h2 className="font-heading text-lg text-foreground shrink-0">Tableau final</h2>
+          <div className="h-px flex-1 bg-border/40" />
+        </div>
 
         {/* Bracket or error */}
         {bracketError ? (
@@ -126,27 +136,24 @@ export default async function BracketPage() {
             </p>
           </div>
         ) : (
-          <section>
-            <h2 className="mb-2 font-heading text-sm uppercase tracking-wider text-muted-foreground/70">Tableau final</h2>
-            <div className="rounded-2xl border border-border/40 glass p-4 sm:p-6">
-              <BracketTree data={bracket} />
-            </div>
-          </section>
+          <div className="rounded-2xl border border-border/40 glass p-4 sm:p-6">
+            <BracketTree data={bracket} />
+          </div>
         )}
 
         {/* Legend */}
         <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-emerald-400" /> Qualifié
+            <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_4px_rgba(52,211,153,0.4)]" /> Qualifié
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-amber-400/60" /> Possible
+            <span className="h-2 w-2 rounded-full bg-amber-400/70" /> Possible
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-red-400/40" /> Éliminé
+            <span className="h-2 w-2 rounded-full bg-red-400/30" /> Éliminé
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="h-2 w-2 rounded-full bg-live animate-pulse" /> En direct
+            <span className="h-2 w-2 rounded-full bg-live animate-pulse" /> Live
           </span>
         </div>
       </div>
