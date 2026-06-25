@@ -13,32 +13,67 @@ function shortName(name: string): string {
   return name.slice(0, 12) + "…"
 }
 
-// ── Card dimensions (used for SVG connector math) ────────────────────────────
+// ── Card dimensions ───────────────────────────────────────────────────────────
 const CARD_W = 148
 const CARD_H = 62
+const CARD_W_LARGE = 164
+const CARD_H_LARGE = 72
+const LABEL_H = 28 // hauteur de la ligne de titre de round (H / QF / SF / F)
+const BASE_GAP = 8 // espacement du tout premier round (le plus rempli)
+const FINAL_HEADER_H = 56 // hauteur trophée + libellé "Finale" au-dessus de la carte
+
+// ── Géométrie du bracket ──────────────────────────────────────────────────────
+// Calcule, pour chaque round, l'écart vertical entre cartes ET le décalage en
+// haut de colonne nécessaire pour que chaque round s'aligne exactement sur le
+// milieu de la paire du round précédent (sinon les lignes ne tombent jamais
+// pile sur les cartes suivantes).
+function buildGeometry(roundCount: number, baseGap = BASE_GAP) {
+  const gaps: number[] = []
+  const offsets: number[] = []
+
+  for (let i = 0; i < roundCount; i++) {
+    if (i === 0) {
+      gaps.push(baseGap)
+      offsets.push(0)
+      continue
+    }
+    const prevGap = gaps[i - 1]
+    const prevOffset = offsets[i - 1]
+    const prevPitch = CARD_H + prevGap
+    gaps.push(CARD_H + 2 * prevGap)
+    offsets.push(prevOffset + prevPitch / 2)
+  }
+
+  const lastGap = gaps[roundCount - 1] ?? baseGap
+  const lastOffset = offsets[roundCount - 1] ?? 0
+  // Position théorique d'un "round suivant" à 1 seule carte (= la Finale)
+  const finalCenterOffset = lastOffset + (CARD_H + lastGap) / 2
+
+  return { gaps, offsets, finalCenterOffset }
+}
 
 // ── MatchSlot ────────────────────────────────────────────────────────────────
 
 function MatchSlot({
   slot,
   isWinner,
-  side,
   size = "normal",
 }: {
   slot: BracketSlot
   isWinner: boolean
-  side: "left" | "right" | "center"
   size?: "normal" | "large"
 }) {
   const m = slot.match
+  const w = size === "large" ? CARD_W_LARGE : CARD_W
+  const h = size === "large" ? CARD_H_LARGE : CARD_H
 
   if (!m) {
     return (
       <div
-        className="rounded-xl border border-dashed border-border/25 bg-background/30 flex items-center justify-center"
-        style={{ width: size === "large" ? 164 : CARD_W, height: size === "large" ? 72 : CARD_H }}
+        className="rounded-xl border border-dashed border-border/40 bg-background/40 flex items-center justify-center"
+        style={{ width: w, height: h }}
       >
-        <span className="text-[11px] text-muted-foreground/30 tracking-widest">?</span>
+        <span className="text-[11px] text-muted-foreground/45 tracking-widest">?</span>
       </div>
     )
   }
@@ -47,76 +82,61 @@ function MatchSlot({
   const awayWin = m.status === "finished" && m.awayScore > m.homeScore
   const isLive = m.status === "live"
   const hasScore = m.status === "live" || m.status === "finished"
-  const w = size === "large" ? 164 : CARD_W
-  const h = size === "large" ? 72 : CARD_H
 
   return (
     <div
       className={cn(
-        "rounded-xl border bg-card/80 backdrop-blur-sm transition-all duration-200 overflow-hidden flex flex-col justify-between",
+        "rounded-xl border bg-card backdrop-blur-sm transition-all duration-200 overflow-hidden flex flex-col justify-between",
         isWinner
-          ? "border-amber-500/50 shadow-[0_0_16px_rgba(245,158,11,0.15),inset_0_0_0_1px_rgba(245,158,11,0.08)]"
-          : "border-border/30 hover:border-border/50",
-        isLive && "border-green-500/40 shadow-[0_0_10px_rgba(34,197,94,0.1)]",
+          ? "border-amber-500/60 shadow-[0_0_16px_rgba(245,158,11,0.2),inset_0_0_0_1px_rgba(245,158,11,0.12)]"
+          : "border-border/50 hover:border-border/70",
+        isLive && "border-green-500/60 shadow-[0_0_10px_rgba(34,197,94,0.18)]",
       )}
       style={{ width: w, height: h }}
     >
       {/* Home row */}
-      <div
-        className={cn(
-          "flex items-center gap-1.5 px-2.5 pt-2",
-          homeWin && "bg-amber-500/5",
-        )}
-      >
+      <div className={cn("flex items-center gap-1.5 px-2.5 pt-2", homeWin && "bg-amber-500/10")}>
         <span className="text-sm leading-none shrink-0">{flagForTeam(m.homeTeam, m.homeTeamCode)}</span>
         <span
           className={cn(
             "text-[12px] flex-1 leading-tight min-w-0 truncate",
-            homeWin ? "font-semibold text-foreground" : hasScore ? "text-muted-foreground/60" : "text-foreground/90",
+            homeWin ? "font-semibold text-foreground" : hasScore ? "text-muted-foreground/80" : "text-foreground",
           )}
         >
           {shortName(m.homeTeam)}
         </span>
         {hasScore && (
-          <span className={cn("text-[13px] font-mono tabular-nums shrink-0 ml-1", homeWin && "font-bold text-amber-400")}>
+          <span className={cn("text-[13px] font-mono tabular-nums shrink-0 ml-1", homeWin ? "font-bold text-amber-400" : "text-foreground/70")}>
             {m.homeScore}
           </span>
         )}
       </div>
 
-      {/* Divider */}
-      <div className="mx-2.5 border-t border-border/15" />
+      <div className="mx-2.5 border-t border-border/25" />
 
       {/* Away row */}
-      <div
-        className={cn(
-          "flex items-center gap-1.5 px-2.5 pb-2",
-          awayWin && "bg-amber-500/5",
-        )}
-      >
+      <div className={cn("flex items-center gap-1.5 px-2.5 pb-2", awayWin && "bg-amber-500/10")}>
         <span className="text-sm leading-none shrink-0">{flagForTeam(m.awayTeam, m.awayTeamCode)}</span>
         <span
           className={cn(
             "text-[12px] flex-1 leading-tight min-w-0 truncate",
-            awayWin ? "font-semibold text-foreground" : hasScore ? "text-muted-foreground/60" : "text-foreground/90",
+            awayWin ? "font-semibold text-foreground" : hasScore ? "text-muted-foreground/80" : "text-foreground",
           )}
         >
           {shortName(m.awayTeam)}
         </span>
         {hasScore && (
-          <span className={cn("text-[13px] font-mono tabular-nums shrink-0 ml-1", awayWin && "font-bold text-amber-400")}>
+          <span className={cn("text-[13px] font-mono tabular-nums shrink-0 ml-1", awayWin ? "font-bold text-amber-400" : "text-foreground/70")}>
             {m.awayScore}
           </span>
         )}
       </div>
 
       {/* Status bar */}
-      <div className={cn(
-        "px-2.5 pb-1.5 flex justify-between items-center",
-      )}>
-        <span className="text-[9px] text-muted-foreground/40 font-mono">#{slot.wc26MatchId}</span>
+      <div className="px-2.5 pb-1.5 flex justify-between items-center">
+        <span className="text-[9px] text-muted-foreground/55 font-mono">#{slot.wc26MatchId}</span>
         {m.status === "scheduled" && (
-          <span className="text-[9px] text-muted-foreground/50">{kickoffTime(m.kickoff)}</span>
+          <span className="text-[9px] text-muted-foreground/65">{kickoffTime(m.kickoff)}</span>
         )}
         {isLive && (
           <span className="inline-flex items-center gap-1 text-[9px] text-green-400 font-semibold tracking-wide">
@@ -124,100 +144,60 @@ function MatchSlot({
             LIVE
           </span>
         )}
-        {m.status === "finished" && (
-          <span className="text-[9px] text-muted-foreground/40">FT</span>
-        )}
+        {m.status === "finished" && <span className="text-[9px] text-muted-foreground/55">FT</span>}
       </div>
     </div>
   )
 }
 
-// ── Round label ───────────────────────────────────────────────────────────────
+// ── Round label colors ────────────────────────────────────────────────────────
 
 const ROUND_COLORS: Record<string, string> = {
-  "Huitièmes": "text-muted-foreground/50",
-  "Quarts": "text-blue-400/60",
-  "Demies": "text-purple-400/70",
-  "Finale": "text-amber-400/80",
-  "H": "text-muted-foreground/50",
-  "QF": "text-blue-400/60",
-  "SF": "text-purple-400/70",
-  "F": "text-amber-400/80",
+  H: "text-sky-300/80",
+  QF: "text-blue-400/85",
+  SF: "text-purple-400/90",
+  F: "text-amber-400/90",
 }
 
 // ── Connector SVG ─────────────────────────────────────────────────────────────
-// Draws bracket lines between a column of slots and the next round's slots
 
 function ConnectorLines({
   slots,
   side,
-  cardH,
   gap,
+  offsetTop,
 }: {
   slots: BracketSlot[]
   side: "left" | "right"
-  cardH: number
   gap: number
+  offsetTop: number
 }) {
   if (slots.length < 2) return null
 
-  // Each pair of adjacent slots feeds one match in the next round
   const pairs = Math.floor(slots.length / 2)
-  const svgH = slots.length * (cardH + gap) - gap
+  const svgH = slots.length * (CARD_H + gap) - gap
   const svgW = 20
-
   const lines: React.ReactNode[] = []
 
   for (let i = 0; i < pairs; i++) {
-    const topIdx = i * 2
-    const botIdx = i * 2 + 1
-    // y-center of top card
-    const topY = topIdx * (cardH + gap) + cardH / 2
-    // y-center of bottom card
-    const botY = botIdx * (cardH + gap) + cardH / 2
-    // midpoint
+    const topY = i * 2 * (CARD_H + gap) + CARD_H / 2
+    const botY = (i * 2 + 1) * (CARD_H + gap) + CARD_H / 2
     const midY = (topY + botY) / 2
-
     const x0 = side === "left" ? 0 : svgW
     const x1 = side === "left" ? svgW : 0
 
     lines.push(
       <g key={i}>
-        {/* Top horizontal stub */}
-        <line
-          x1={x0} y1={topY}
-          x2={svgW / 2} y2={topY}
-          stroke="currentColor" strokeWidth="1" opacity="0.2"
-        />
-        {/* Bottom horizontal stub */}
-        <line
-          x1={x0} y1={botY}
-          x2={svgW / 2} y2={botY}
-          stroke="currentColor" strokeWidth="1" opacity="0.2"
-        />
-        {/* Vertical connector */}
-        <line
-          x1={svgW / 2} y1={topY}
-          x2={svgW / 2} y2={botY}
-          stroke="currentColor" strokeWidth="1" opacity="0.2"
-        />
-        {/* Output stub to next card */}
-        <line
-          x1={svgW / 2} y1={midY}
-          x2={x1} y2={midY}
-          stroke="currentColor" strokeWidth="1" opacity="0.2"
-        />
-      </g>
+        <line x1={x0} y1={topY} x2={svgW / 2} y2={topY} stroke="currentColor" strokeWidth="1.5" opacity="0.35" />
+        <line x1={x0} y1={botY} x2={svgW / 2} y2={botY} stroke="currentColor" strokeWidth="1.5" opacity="0.35" />
+        <line x1={svgW / 2} y1={topY} x2={svgW / 2} y2={botY} stroke="currentColor" strokeWidth="1.5" opacity="0.35" />
+        <line x1={svgW / 2} y1={midY} x2={x1} y2={midY} stroke="currentColor" strokeWidth="1.5" opacity="0.35" />
+      </g>,
     )
   }
 
   return (
-    <svg
-      width={svgW}
-      height={svgH}
-      className="text-foreground shrink-0 self-start"
-      style={{ marginTop: 0 }}
-    >
+    <svg width={svgW} height={svgH} className="text-foreground shrink-0" style={{ marginTop: LABEL_H + offsetTop }}>
       {lines}
     </svg>
   )
@@ -227,48 +207,29 @@ function ConnectorLines({
 
 function BracketColumn({
   slots,
-  roundName,
   shortName: roundShort,
-  side,
-  isFirst,
+  gap,
+  offsetTop,
 }: {
   slots: BracketSlot[]
-  roundName: string
   shortName: string
-  side: "left" | "right"
-  isFirst: boolean
+  gap: number
+  offsetTop: number
 }) {
   if (slots.length === 0) return null
-
-  // Gap between cards grows as round progresses (fewer slots = more spread)
-  const gapMap: Record<string, number> = { R32: 8, R16: 76, QF: 208, SF: 472 }
-  const gap = gapMap[slots[0]?.round ?? "R32"] ?? 8
-
-  const getWinner = (s: BracketSlot) => {
-    if (!s.match || s.match.status !== "finished") return false
-    return true
-  }
-
-  const colorClass = ROUND_COLORS[roundShort] ?? "text-muted-foreground/50"
+  const colorClass = ROUND_COLORS[roundShort] ?? "text-muted-foreground/70"
 
   return (
     <div className="flex flex-col items-center gap-0">
-      {/* Round label */}
-      <span className={cn(
-        "text-[10px] font-bold uppercase tracking-widest mb-3",
-        colorClass,
-      )}>
-        {roundShort}
-      </span>
-
-      {/* Cards */}
-      <div className="flex flex-col" style={{ gap }}>
+      <div style={{ height: LABEL_H }} className="flex items-center">
+        <span className={cn("text-[10px] font-bold uppercase tracking-widest", colorClass)}>{roundShort}</span>
+      </div>
+      <div className="flex flex-col" style={{ gap, marginTop: offsetTop }}>
         {slots.map((slot) => (
           <MatchSlot
             key={slot.wc26MatchId}
             slot={slot}
-            isWinner={getWinner(slot)}
-            side={side}
+            isWinner={!!slot.match && slot.match.status === "finished"}
           />
         ))}
       </div>
@@ -278,57 +239,42 @@ function BracketColumn({
 
 // ── Half Bracket ──────────────────────────────────────────────────────────────
 
-function HalfBracket({ half, side }: { half: BracketData["left"]; side: "left" | "right" }) {
+function HalfBracket({
+  half,
+  side,
+}: {
+  half: BracketData["left"]
+  side: "left" | "right"
+}) {
   if (half.rounds.length === 0) return null
 
-  const orderedRounds = side === "left"
-    ? half.rounds
-    : [...half.rounds].reverse()
-
-  const gapMap: Record<string, number> = { R32: 8, R16: 76, QF: 208, SF: 472 }
+  const { gaps, offsets } = buildGeometry(half.rounds.length)
+  const order =
+    side === "left"
+      ? half.rounds.map((_, i) => i)
+      : half.rounds.map((_, i) => i).reverse()
 
   return (
-    <div className="flex items-start" style={{ gap: 0 }}>
-      {orderedRounds.map((round, ri) => {
-        const gap = gapMap[round.slots[0]?.round ?? "R32"] ?? 8
-        const prevRound = side === "left" ? orderedRounds[ri - 1] : orderedRounds[ri + 1]
-        const connectorSlots = prevRound?.slots ?? round.slots
+    <div className="flex items-start">
+      {order.map((i, pos) => {
+        const round = half.rounds[i]
+        const hasNext = pos < order.length - 1
+        const connectorIdx = side === "left" ? order[pos] : order[pos + 1]
 
         return (
-          <div key={ri} className="flex items-start">
-            {/* Left side: connector BEFORE column (except first) */}
-            {side === "left" && ri > 0 && (
-              <ConnectorLines
-                slots={connectorSlots}
-                side="left"
-                cardH={CARD_H}
-                gap={gapMap[connectorSlots[0]?.round ?? "R32"] ?? 8}
-              />
-            )}
-
+          <div key={i} className="flex items-start">
             <BracketColumn
               slots={round.slots}
-              roundName={round.name}
               shortName={round.shortName}
-              side={side}
-              isFirst={ri === 0}
+              gap={gaps[i]}
+              offsetTop={offsets[i]}
             />
-
-            {/* Right side: connector AFTER column (except last) */}
-            {side === "left" && ri < orderedRounds.length - 1 && (
+            {hasNext && (
               <ConnectorLines
-                slots={round.slots}
-                side="left"
-                cardH={CARD_H}
-                gap={gap}
-              />
-            )}
-            {side === "right" && ri < orderedRounds.length - 1 && (
-              <ConnectorLines
-                slots={round.slots}
-                side="right"
-                cardH={CARD_H}
-                gap={gap}
+                slots={half.rounds[connectorIdx].slots}
+                gap={gaps[connectorIdx]}
+                offsetTop={offsets[connectorIdx]}
+                side={side}
               />
             )}
           </div>
@@ -343,38 +289,39 @@ function HalfBracket({ half, side }: { half: BracketData["left"]; side: "left" |
 function CenterPiece({
   finalSlot,
   thirdPlace,
+  finalCenterY,
 }: {
   finalSlot: BracketData["final"]
   thirdPlace: BracketData["thirdPlace"]
+  finalCenterY: number
 }) {
+  // Positionne le groupe (trophée + libellé + carte) pour que le CENTRE de
+  // la carte de finale tombe exactement à finalCenterY.
+  const groupMarginTop = Math.max(0, finalCenterY - FINAL_HEADER_H - CARD_H_LARGE / 2)
+
   return (
-    <div className="flex flex-col items-center shrink-0 px-3 gap-6 mt-6">
-      {/* Final */}
+    <div className="flex flex-col items-center shrink-0 px-3 gap-6" style={{ marginTop: groupMarginTop }}>
       {finalSlot && (
         <div className="flex flex-col items-center gap-2">
-          {/* Trophy icon with glow */}
           <div className="relative">
-            <div className="absolute inset-0 blur-md bg-amber-500/20 rounded-full" />
+            <div className="absolute inset-0 blur-md bg-amber-500/25 rounded-full" />
             <Trophy className="relative h-6 w-6 text-amber-400" />
           </div>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400/80">
-            Finale
-          </span>
-          <div className="rounded-xl border-2 border-amber-500/30 shadow-[0_0_24px_rgba(245,158,11,0.12)] overflow-hidden">
-            <MatchSlot slot={finalSlot} isWinner={false} side="center" size="large" />
+          <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400/90">Finale</span>
+          <div className="rounded-xl border-2 border-amber-500/40 shadow-[0_0_24px_rgba(245,158,11,0.18)] overflow-hidden">
+            <MatchSlot slot={finalSlot} isWinner={false} size="large" />
           </div>
         </div>
       )}
 
-      {/* 3rd place */}
       {thirdPlace && (
         <div className="flex flex-col items-center gap-2">
-          <Medal className="h-4 w-4 text-muted-foreground/50" />
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/40">
+          <Medal className="h-4 w-4 text-muted-foreground/60" />
+          <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/55">
             3ᵉ place
           </span>
-          <div className="rounded-xl border border-border/20 overflow-hidden opacity-80">
-            <MatchSlot slot={thirdPlace} isWinner={false} side="center" size="normal" />
+          <div className="rounded-xl border border-border/35 overflow-hidden opacity-90">
+            <MatchSlot slot={thirdPlace} isWinner={false} size="normal" />
           </div>
         </div>
       )}
@@ -391,59 +338,51 @@ export function BracketTree({ data }: { data: BracketData }) {
     return (
       <div className="flex flex-col items-center justify-center py-16 gap-4">
         <div className="relative">
-          <div className="absolute inset-0 blur-xl bg-amber-500/10 rounded-full" />
-          <Trophy className="relative h-12 w-12 text-muted-foreground/20" />
+          <div className="absolute inset-0 blur-xl bg-amber-500/15 rounded-full" />
+          <Trophy className="relative h-12 w-12 text-muted-foreground/30" />
         </div>
-        <p className="text-sm text-muted-foreground/50 text-center max-w-xs">
+        <p className="text-sm text-muted-foreground/60 text-center max-w-xs">
           Les matchs à élimination directe apparaîtront ici après la phase de groupes.
         </p>
       </div>
     )
   }
 
+  // Géométrie de référence pour centrer la finale
+  const refHalf = left.rounds.length > 0 ? left : right
+  const refGeometry = buildGeometry(refHalf.rounds.length)
+  const finalCenterY = LABEL_H + refGeometry.finalCenterOffset
+
+  // Connecteur SF → Finale (un par côté, une seule fois chacun)
+  const leftLastIdx = left.rounds.length - 1
+  const rightLastIdx = right.rounds.length - 1
+
   return (
     <div className="overflow-x-auto -mx-2 px-2">
       <div className="flex items-start justify-center min-w-max py-4 gap-0">
-
-        {/* LEFT HALF  ── R32 → R16 → QF → SF */}
         <HalfBracket half={left} side="left" />
 
-        {/* SF→Final connector left */}
-        <div className="flex items-start" style={{ marginTop: 22 }}>
-          {left.rounds.length > 0 && (() => {
-            const sfRound = left.rounds[left.rounds.length - 1]
-            return (
-              <ConnectorLines
-                slots={sfRound.slots}
-                side="left"
-                cardH={CARD_H}
-                gap={472}
-              />
-            )
-          })()}
-        </div>
+        {left.rounds.length > 0 && (
+          <ConnectorLines
+            slots={left.rounds[leftLastIdx].slots}
+            gap={refGeometry.gaps[leftLastIdx]}
+            offsetTop={refGeometry.offsets[leftLastIdx]}
+            side="left"
+          />
+        )}
 
-        {/* CENTER */}
-        <CenterPiece finalSlot={finalSlot} thirdPlace={thirdPlace} />
+        <CenterPiece finalSlot={finalSlot} thirdPlace={thirdPlace} finalCenterY={finalCenterY} />
 
-        {/* Final→SF connector right */}
-        <div className="flex items-start" style={{ marginTop: 22 }}>
-          {right.rounds.length > 0 && (() => {
-            const sfRound = [...right.rounds].reverse()[0]
-            return (
-              <ConnectorLines
-                slots={sfRound.slots}
-                side="right"
-                cardH={CARD_H}
-                gap={472}
-              />
-            )
-          })()}
-        </div>
+        {right.rounds.length > 0 && (
+          <ConnectorLines
+            slots={right.rounds[rightLastIdx].slots}
+            gap={refGeometry.gaps[rightLastIdx]}
+            offsetTop={refGeometry.offsets[rightLastIdx]}
+            side="right"
+          />
+        )}
 
-        {/* RIGHT HALF ── SF → QF → R16 → R32 */}
         <HalfBracket half={right} side="right" />
-
       </div>
     </div>
   )
