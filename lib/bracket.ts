@@ -246,7 +246,7 @@ export async function isBracketVisible(isAdmin: boolean): Promise<boolean> {
   try {
     const [row] = await db.select({ value: setting.value }).from(setting).where(eq(setting.key, "bracket_visible")).limit(1)
     const published = row ? (row.value as boolean) === true : false
-    return published && new Date() >= BRACKET_PUBLIC_DATE
+    return published
   } catch { return false }
 }
 

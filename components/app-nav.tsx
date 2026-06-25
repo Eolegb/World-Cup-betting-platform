@@ -28,6 +28,7 @@ export function AppNav({ displayName, balance, isAdmin, image }: NavProps) {
       ]
     : [
         { href: "/", label: "Matchs", icon: Home },
+        { href: "/bracket", label: "Bracket", icon: Swords },
         { href: "/mes-paris", label: "Mes paris", icon: Ticket },
         { href: "/classement", label: "Classement", icon: Crown },
       ]

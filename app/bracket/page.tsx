@@ -28,8 +28,8 @@ export default async function BracketPage() {
     published = false
   }
 
-  // Fetch group standings (admin always sees them)
-  if (p.isAdmin) {
+  // Fetch group standings (always for admin, for players only when visible)
+  if (p.isAdmin || visible) {
     try {
       groups = await fetchGroupStandings()
     } catch {
