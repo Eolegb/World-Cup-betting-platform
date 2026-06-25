@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils"
 import { formatMoney } from "@/lib/format"
 import { SignOutButton } from "@/components/sign-out-button"
 import { AvatarUpload } from "@/components/avatar-upload"
-import { Trophy, Home, Ticket, Crown, ShieldCheck, Coins } from "lucide-react"
+import { Trophy, Home, Ticket, Crown, ShieldCheck, Coins, Swords } from "lucide-react"
 import { PushNotificationToggle } from "@/components/push-toggle"
 
 type NavProps = {
@@ -22,6 +22,7 @@ export function AppNav({ displayName, balance, isAdmin, image }: NavProps) {
   const links = isAdmin
     ? [
         { href: "/", label: "Matchs", icon: Home },
+        { href: "/bracket", label: "Bracket", icon: Swords },
         { href: "/classement", label: "Classement", icon: Crown },
         { href: "/admin", label: "Admin", icon: ShieldCheck },
       ]

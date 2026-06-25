@@ -213,3 +213,11 @@ export const pushSubscription = pgTable(
     unique("push_sub_unique").on(table.userId, table.endpoint),
   ]
 )
+
+// --- App settings (feature flags, admin toggles) ----------------------------
+
+export const setting = pgTable("setting", {
+  key: text("key").primaryKey(),
+  value: jsonb("value").notNull(),
+  updatedAt: timestamp("updatedAt").notNull().defaultNow(),
+})
