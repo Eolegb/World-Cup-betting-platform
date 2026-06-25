@@ -4,9 +4,10 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { RefreshCw, FlaskConical, Flag, BarChart3 } from "lucide-react"
+import { RefreshCw, FlaskConical, Flag, BarChart3, Coins } from "lucide-react"
 import { seedDemoData } from "@/app/actions/seed"
 import { triggerSync as triggerSyncAction, forceCloseAllPastMatches, getMatchCounts } from "@/app/actions/sync"
+import { resetUserBalance } from "@/app/actions/admin-users"
 
 async function settleBets() {
   const res = await fetch("/api/sync/live")
@@ -23,6 +24,21 @@ export function AdminActions() {
   const [seeding, setSeeding] = useState(false)
   const [settling, setSettling] = useState(false)
   const [closing, setClosing] = useState(false)
+  const [resetting, setResetting] = useState(false)
+
+  async function handleResetEolegb() {
+    if (!confirm("Réinitialiser eolegb : 1 000 € + joker ?")) return
+    setResetting(true)
+    try {
+      const data = await resetUserBalance("eolegb")
+      if (data.ok) toast.success(data.message)
+      else toast.error(data.error)
+    } catch (e: any) {
+      toast.error(e.message ?? "Erreur")
+    }
+    setResetting(false)
+    router.refresh()
+  }
 
   async function handleSettle() {
     setSettling(true)
@@ -120,6 +136,10 @@ export function AdminActions() {
       <Button onClick={triggerSeed} disabled={seeding} variant="outline" className="w-full font-medium justify-start">
         <FlaskConical className="mr-2 h-4 w-4 shrink-0" />
         {seeding ? "Génération..." : "Générer données de démo"}
+      </Button>
+      <Button onClick={handleResetEolegb} disabled={resetting} variant="outline" className="w-full font-medium justify-start text-amber-400">
+        <Coins className="mr-2 h-4 w-4 shrink-0" />
+        {resetting ? "Reset..." : "Reset eolegb (1000€ + joker)"}
       </Button>
     </div>
   )
