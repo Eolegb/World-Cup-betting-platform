@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 import { flagForTeam } from "@/lib/flags"
 import { kickoffTime } from "@/lib/datetime"
 import type { BracketData, BracketSlot } from "@/lib/bracket"
-import { Trophy, Medal } from "lucide-react"
+import { Trophy } from "lucide-react"
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -284,47 +284,29 @@ function HalfBracket({
   )
 }
 
-// ── Center piece ──────────────────────────────────────────────────────────────
+// ── Center (Final only) ───────────────────────────────────────────────────────
 
-function CenterPiece({
+function CenterFinal({
   finalSlot,
-  thirdPlace,
   finalCenterY,
 }: {
   finalSlot: BracketData["final"]
-  thirdPlace: BracketData["thirdPlace"]
   finalCenterY: number
 }) {
-  // Positionne le groupe (trophée + libellé + carte) pour que le CENTRE de
-  // la carte de finale tombe exactement à finalCenterY.
+  if (!finalSlot) return null
+
   const groupMarginTop = Math.max(0, finalCenterY - FINAL_HEADER_H - CARD_H_LARGE / 2)
 
   return (
-    <div className="flex flex-col items-center shrink-0 px-3 gap-6" style={{ marginTop: groupMarginTop }}>
-      {finalSlot && (
-        <div className="flex flex-col items-center gap-2">
-          <div className="relative">
-            <div className="absolute inset-0 blur-md bg-amber-500/25 rounded-full" />
-            <Trophy className="relative h-6 w-6 text-amber-400" />
-          </div>
-          <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400/90">Finale</span>
-          <div className="rounded-xl border-2 border-amber-500/40 shadow-[0_0_24px_rgba(245,158,11,0.18)] overflow-hidden">
-            <MatchSlot slot={finalSlot} isWinner={false} size="large" />
-          </div>
-        </div>
-      )}
-
-      {thirdPlace && (
-        <div className="flex flex-col items-center gap-2">
-          <Medal className="h-4 w-4 text-muted-foreground/60" />
-          <span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground/55">
-            3ᵉ place
-          </span>
-          <div className="rounded-xl border border-border/35 overflow-hidden opacity-90">
-            <MatchSlot slot={thirdPlace} isWinner={false} size="normal" />
-          </div>
-        </div>
-      )}
+    <div className="flex flex-col items-center shrink-0 px-3" style={{ marginTop: groupMarginTop }}>
+      <div className="relative">
+        <div className="absolute inset-0 blur-md bg-amber-500/25 rounded-full" />
+        <Trophy className="relative h-6 w-6 text-amber-400" />
+      </div>
+      <span className="mt-2 text-[10px] font-bold uppercase tracking-widest text-amber-400/90">Finale</span>
+      <div className="mt-2 rounded-xl border-2 border-amber-500/40 shadow-[0_0_24px_rgba(245,158,11,0.18)] overflow-hidden">
+        <MatchSlot slot={finalSlot} isWinner={false} size="large" />
+      </div>
     </div>
   )
 }
@@ -332,7 +314,7 @@ function CenterPiece({
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 export function BracketTree({ data }: { data: BracketData }) {
-  const { left, right, final: finalSlot, thirdPlace } = data
+  const { left, right, final: finalSlot } = data
 
   if (left.rounds.length === 0 && right.rounds.length === 0) {
     return (
@@ -371,7 +353,7 @@ export function BracketTree({ data }: { data: BracketData }) {
           />
         )}
 
-        <CenterPiece finalSlot={finalSlot} thirdPlace={thirdPlace} finalCenterY={finalCenterY} />
+        <CenterFinal finalSlot={finalSlot} finalCenterY={finalCenterY} />
 
         {right.rounds.length > 0 && (
           <ConnectorLines
