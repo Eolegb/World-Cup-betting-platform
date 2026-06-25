@@ -236,6 +236,13 @@ export type WC26SyncResult = {
   updated: number
   skipped: number
   total: number
+  summary: {
+    scheduled: number
+    live: number
+    finished: number
+  }
+  inserted_ids: string[]   // WC26 game IDs that were inserted
+  skipped_ids: string[]    // WC26 game IDs that were skipped (with reason)
   errors: string[]
 }
 
@@ -244,7 +251,14 @@ export type WC26SyncResult = {
  * Exportée pour pouvoir être appelée via un endpoint dédié.
  */
 export async function syncWC26Fixtures(): Promise<WC26SyncResult> {
-  const result: WC26SyncResult = { ok: false, inserted: 0, updated: 0, skipped: 0, total: 0, errors: [] }
+  const result: WC26SyncResult = {
+    ok: false,
+    inserted: 0, updated: 0, skipped: 0, total: 0,
+    summary: { scheduled: 0, live: 0, finished: 0 },
+    inserted_ids: [],
+    skipped_ids: [],
+    errors: [],
+  }
 
   let games: WC26Game[]
   try {
@@ -303,15 +317,19 @@ export async function syncWC26Fixtures(): Promise<WC26SyncResult> {
   for (const g of games) {
     try {
       // Ignorer les matchs sans équipes déterminées
-      if (
+      const isTbd =
         (!g.home_team_name_en && g.home_team_label) ||
         (!g.away_team_name_en && g.away_team_label)
-      ) {
+      const isNoTeam = !g.home_team_name_en || !g.away_team_name_en
+
+      if (isTbd) {
         result.skipped++
+        result.skipped_ids.push(`#${g.id}: TBD (${g.home_team_label || "?"} vs ${g.away_team_label || "?"})`)
         continue
       }
-      if (!g.home_team_name_en || !g.away_team_name_en) {
+      if (isNoTeam) {
         result.skipped++
+        result.skipped_ids.push(`#${g.id}: missing team names`)
         continue
       }
 
@@ -322,6 +340,11 @@ export async function syncWC26Fixtures(): Promise<WC26SyncResult> {
       const status = normalizeStatus(g.finished, g.time_elapsed)
       const homeScore = g.home_score === "null" || g.home_score === "" ? 0 : parseInt(g.home_score, 10)
       const awayScore = g.away_score === "null" || g.away_score === "" ? 0 : parseInt(g.away_score, 10)
+
+      // Tracker le statut pour le summary
+      if (status === "scheduled") result.summary.scheduled++
+      else if (status === "live") result.summary.live++
+      else result.summary.finished++
 
       // 1. Chercher par externalId WC26
       const existingByExtId = byExternalId.get(extId)
@@ -355,6 +378,7 @@ export async function syncWC26Fixtures(): Promise<WC26SyncResult> {
           })
           .where(eq(match.id, dup.id))
         result.updated++
+        result.inserted_ids.push(`#${g.id}: ${g.home_team_name_en} vs ${g.away_team_name_en} (merged duplicate)`)
         continue
       }
 
@@ -374,6 +398,7 @@ export async function syncWC26Fixtures(): Promise<WC26SyncResult> {
         lastSyncedAt: new Date(),
       })
       result.inserted++
+      result.inserted_ids.push(`#${g.id}: ${g.home_team_name_en} vs ${g.away_team_name_en} (${status})`)
     } catch (e) {
       result.errors.push(`Game #${g.id} (${g.home_team_name_en || "?"} vs ${g.away_team_name_en || "?"}): ${e instanceof Error ? e.message : String(e)}`)
     }

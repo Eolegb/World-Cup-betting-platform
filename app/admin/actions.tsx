@@ -4,9 +4,9 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
-import { RefreshCw, FlaskConical, Flag } from "lucide-react"
+import { RefreshCw, FlaskConical, Flag, BarChart3 } from "lucide-react"
 import { seedDemoData } from "@/app/actions/seed"
-import { triggerSync as triggerSyncAction, forceCloseAllPastMatches } from "@/app/actions/sync"
+import { triggerSync as triggerSyncAction, forceCloseAllPastMatches, getMatchCounts } from "@/app/actions/sync"
 
 async function settleBets() {
   const res = await fetch("/api/sync/live")
@@ -82,11 +82,32 @@ export function AdminActions() {
     router.refresh()
   }
 
+  async function handleVerify() {
+    setSyncing(true)
+    try {
+      const data = await getMatchCounts()
+      toast.success(
+        `Matchs en base : ${data.counts.total} total — ${data.counts.scheduled} à venir, ${data.counts.live} live, ${data.counts.finished} finis`,
+        { duration: 8000 }
+      )
+      if (data.upcoming.length > 0) {
+        console.table(data.upcoming.map(m => ({ id: m.id, teams: `${m.homeTeam} vs ${m.awayTeam}`, kickoff: String(m.kickoff), stage: m.stage })))
+      }
+    } catch (e: any) {
+      toast.error(e.message ?? "Erreur")
+    }
+    setSyncing(false)
+  }
+
   return (
     <div className="flex flex-col gap-2 w-full">
       <Button onClick={handleSync} disabled={syncing} className="w-full font-medium justify-start">
         <RefreshCw className={`mr-2 h-4 w-4 shrink-0 ${syncing ? "animate-spin" : ""}`} />
         {syncing ? "Synchronisation..." : "Synchroniser les matchs"}
+      </Button>
+      <Button onClick={handleVerify} disabled={syncing} variant="secondary" className="w-full font-medium justify-start">
+        <BarChart3 className="mr-2 h-4 w-4 shrink-0" />
+        Vérifier les matchs en base
       </Button>
       <Button onClick={handleSettle} disabled={settling} variant="secondary" className="w-full font-medium justify-start">
         <RefreshCw className={`mr-2 h-4 w-4 shrink-0 ${settling ? "animate-spin" : ""}`} />

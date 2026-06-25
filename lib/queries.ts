@@ -9,7 +9,12 @@ export type BetRow = typeof bet.$inferSelect
 export type EventRow = typeof matchEvent.$inferSelect
 
 export async function getMatches() {
-  return db.select().from(match).orderBy(match.kickoff)
+  const rows = await db.select().from(match).orderBy(match.kickoff)
+  const scheduled = rows.filter(r => r.status === "scheduled").length
+  const live = rows.filter(r => r.status === "live").length
+  const finished = rows.filter(r => r.status === "finished").length
+  console.log(`[getMatches] ${rows.length} total (scheduled: ${scheduled}, live: ${live}, finished: ${finished})`)
+  return rows
 }
 
 export async function getMatch(id: number): Promise<MatchRow | null> {

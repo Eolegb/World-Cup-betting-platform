@@ -11,9 +11,46 @@ import { and, eq, lt, or } from "drizzle-orm"
 export async function triggerSync() {
   await requireAdmin()
   const data = await runSync()
-  revalidatePath("/")
-  revalidatePath("/admin")
+
+  // Invalidation agressive de tout le cache
+  revalidatePath("/", "layout")
+  revalidatePath("/admin", "layout")
+  revalidatePath("/match", "layout")
+  revalidatePath("/api/matches")
+
   return data
+}
+
+export async function getMatchCounts() {
+  await requireAdmin()
+
+  const rows = await db
+    .select({ status: match.status })
+    .from(match)
+
+  const counts = { scheduled: 0, live: 0, finished: 0, total: rows.length }
+  for (const r of rows) {
+    if (r.status === "scheduled") counts.scheduled++
+    else if (r.status === "live") counts.live++
+    else if (r.status === "finished") counts.finished++
+  }
+
+  // Récupérer les 5 prochains matchs scheduled pour vérifier
+  const upcoming = await db
+    .select({
+      id: match.id,
+      homeTeam: match.homeTeam,
+      awayTeam: match.awayTeam,
+      kickoff: match.kickoff,
+      stage: match.stage,
+      status: match.status,
+    })
+    .from(match)
+    .where(eq(match.status, "scheduled"))
+    .orderBy(match.kickoff)
+    .limit(10)
+
+  return { ok: true as const, counts, upcoming }
 }
 
 export async function forceCloseAllPastMatches() {
