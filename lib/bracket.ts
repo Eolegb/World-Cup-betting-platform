@@ -85,12 +85,12 @@ const BRACKET_DEFINITION: SlotDef[] = [
 ]
 
 const ROUND_NAMES: Record<string, { name: string; shortName: string }> = {
-  R32:   { name: "1/16ᵉ", shortName: "R32" },
-  R16:   { name: "1/8ᵉ",  shortName: "R16" },
-  QF:    { name: "1/4",    shortName: "QF" },
-  SF:    { name: "1/2",    shortName: "SF" },
-  "3RD": { name: "3ᵉ place", shortName: "3e" },
-  FINAL: { name: "Finale",   shortName: "F" },
+  R32:   { name: "Huitièmes de finale", shortName: "H" },
+  R16:   { name: "Quarts de finale",    shortName: "QF" },
+  QF:    { name: "Demi-finales",        shortName: "SF" },
+  SF:    { name: "Finale",              shortName: "F" },
+  "3RD": { name: "3ᵉ place",            shortName: "3e" },
+  FINAL: { name: "Finale",              shortName: "F" },
 }
 
 // ---------------------------------------------------------------------------
