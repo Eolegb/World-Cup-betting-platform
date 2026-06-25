@@ -8,6 +8,14 @@ import {
   type FootballDataMatch,
   type FootballDataEvent,
 } from "@/lib/providers"
+import {
+  fetchGames,
+  parseLocalDate,
+  normalizeStage,
+  normalizeStatus,
+  getStadiumName,
+  type WC26Game,
+} from "@/lib/worldcup26"
 import { updateAllOdds } from "@/lib/odds-service"
 import { settlePendingBetsForMatch } from "@/lib/settle-match"
 import { and, eq, lt, or } from "drizzle-orm"
@@ -22,6 +30,14 @@ export async function runSync(): Promise<{ ok: boolean; results?: string[]; erro
   syncing = true
   try {
     const results: string[] = []
+
+    // 0. Sync fixtures from worldcup26.ir (calendrier complet — 104 matchs)
+    try {
+      const wc26Count = await syncWC26Fixtures()
+      if (wc26Count > 0) results.push(`WC26: ${wc26Count} matches synced from worldcup26.ir`)
+    } catch (e) {
+      console.error("[sync] WC26 fixture sync error:", e)
+    }
 
     const fixtures = await fetchFixtures(true) // force refresh
     if (fixtures.length > 0) {
@@ -196,4 +212,150 @@ async function syncEvents(matchId: number, apiEvents: FootballDataEvent[]) {
       })
       .onConflictDoNothing()
   }
+}
+
+// =============================================================================
+// WC26 fixture sync — calendrier complet depuis worldcup26.ir
+// =============================================================================
+
+/** Préfixe pour les externalId WC26 afin d'éviter les collisions avec football-data.org */
+const WC26_ID_PREFIX = 2_000_000_000
+
+function wc26ExternalId(gameId: string): number {
+  return WC26_ID_PREFIX + parseInt(gameId, 10)
+}
+
+/**
+ * Sync tous les matchs depuis worldcup26.ir.
+ * Retourne le nombre de matchs synchronisés.
+ * Évite les doublons avec les matchs déjà existants (football-data.org etc.)
+ */
+async function syncWC26Fixtures(): Promise<number> {
+  let games: WC26Game[]
+  try {
+    games = await fetchGames()
+  } catch (e) {
+    console.error("[sync] Failed to fetch WC26 games:", e)
+    return 0
+  }
+
+  if (!games.length) {
+    console.warn("[sync] WC26 returned 0 games")
+    return 0
+  }
+
+  // Charger tous les matchs existants pour détecter les doublons
+  const allExisting = await db
+    .select({
+      id: match.id,
+      externalId: match.externalId,
+      homeTeam: match.homeTeam,
+      awayTeam: match.awayTeam,
+      kickoff: match.kickoff,
+      status: match.status,
+    })
+    .from(match)
+
+  // Index par externalId WC26 pour lookup rapide
+  const byExternalId = new Map<number, typeof allExisting[0]>()
+  for (const m of allExisting) {
+    if (m.externalId) byExternalId.set(m.externalId, m)
+  }
+
+  // Fonction utilitaire : trouver un match existant avec les mêmes équipes (±1 jour)
+  function findDuplicate(home: string, away: string, kickoff: Date): typeof allExisting[0] | undefined {
+    const kickoffMs = kickoff.getTime()
+    const oneDay = 24 * 60 * 60 * 1000
+    return allExisting.find(m => {
+      if (Math.abs(m.kickoff.getTime() - kickoffMs) > oneDay) return false
+      return (
+        (m.homeTeam === home && m.awayTeam === away) ||
+        // Fuzzy: swap home/away (les APIs peuvent inverser)
+        (m.homeTeam === away && m.awayTeam === home)
+      )
+    })
+  }
+
+  let inserted = 0
+  let updated = 0
+  let skipped = 0
+
+  for (const g of games) {
+    // Ignorer les matchs sans équipes déterminées (labels uniquement)
+    if (
+      (!g.home_team_name_en && g.home_team_label) ||
+      (!g.away_team_name_en && g.away_team_label)
+    ) {
+      skipped++
+      continue
+    }
+    if (!g.home_team_name_en || !g.away_team_name_en) {
+      skipped++
+      continue
+    }
+
+    const extId = wc26ExternalId(g.id)
+    const kickoff = parseLocalDate(g.local_date, g.stadium_id)
+    const stage = normalizeStage(g.group, g.type)
+    const venue = getStadiumName(g.stadium_id)
+    const status = normalizeStatus(g.finished, g.time_elapsed)
+    const homeScore = g.home_score === "null" || g.home_score === "" ? 0 : parseInt(g.home_score, 10)
+    const awayScore = g.away_score === "null" || g.away_score === "" ? 0 : parseInt(g.away_score, 10)
+
+    // 1. Chercher par externalId WC26
+    const existingByExtId = byExternalId.get(extId)
+    if (existingByExtId) {
+      const existingStatus = existingByExtId.status
+      if (existingStatus === "finished" && status === "scheduled") continue
+      if (existingStatus === "live" && status === "scheduled") continue
+
+      await db
+        .update(match)
+        .set({ homeScore, awayScore, status, lastSyncedAt: new Date() })
+        .where(eq(match.id, existingByExtId.id))
+      updated++
+      continue
+    }
+
+    // 2. Chercher un doublon par équipes (même match d'une autre source)
+    const dup = findDuplicate(g.home_team_name_en, g.away_team_name_en, kickoff)
+    if (dup) {
+      // Mettre à jour le match existant avec l'externalId WC26 pour les futures synchros
+      await db
+        .update(match)
+        .set({
+          externalId: extId,
+          kickoff,     // WC26 a potentiellement un meilleur horaire
+          stage: stage || undefined,
+          venue: venue || undefined,
+          homeScore,
+          awayScore,
+          status: status === "finished" || dup.status !== "finished" ? status : dup.status,
+          lastSyncedAt: new Date(),
+        })
+        .where(eq(match.id, dup.id))
+      updated++
+      continue
+    }
+
+    // 3. Nouveau match
+    await db.insert(match).values({
+      externalId: extId,
+      homeTeam: g.home_team_name_en,
+      awayTeam: g.away_team_name_en,
+      homeTeamCode: null,
+      awayTeamCode: null,
+      kickoff,
+      stage,
+      venue,
+      status,
+      homeScore,
+      awayScore,
+      lastSyncedAt: new Date(),
+    })
+    inserted++
+  }
+
+  console.log(`[sync] WC26: inserted ${inserted}, updated ${updated}, skipped ${skipped} (total ${games.length} games)`)
+  return inserted + updated
 }
