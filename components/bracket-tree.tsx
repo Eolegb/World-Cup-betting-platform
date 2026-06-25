@@ -295,7 +295,7 @@ function CenterFinal({
 }) {
   if (!finalSlot) return null
 
-  const groupMarginTop = Math.max(0, (finalCenterY - FINAL_HEADER_H - CARD_H_LARGE / 2) / 2)
+  const groupMarginTop = Math.max(0, (finalCenterY - FINAL_HEADER_H - CARD_H_LARGE / 2) * 0.42)
 
   return (
     <div className="flex flex-col items-center shrink-0 px-3" style={{ marginTop: groupMarginTop }}>
