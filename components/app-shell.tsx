@@ -42,7 +42,7 @@ export async function AppShell({
       <AppNav displayName={p.displayName} balance={p.balance} isAdmin={p.isAdmin} image={p.image} />
       <LiveScorePoller />
       <PushReminderPoller />
-      <main className="mx-auto max-w-6xl px-4 py-6 overflow-x-hidden w-full min-w-0">{children}</main>
+      <main className="mx-auto max-w-6xl px-4 py-6 overflow-x-clip w-full min-w-0">{children}</main>
     </div>
   )
 }
